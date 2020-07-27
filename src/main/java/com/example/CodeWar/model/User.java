@@ -1,38 +1,33 @@
 package com.example.CodeWar.model;
 
+import com.example.CodeWar.app.UserRole;
+import com.example.CodeWar.app.UserVerificationStatus;
 import lombok.Data;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import java.util.Objects;
 
 @Entity
 @Data
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
-    @NotNull
-    @NotEmpty
+    @GeneratedValue
+    private long id;
     private String userName;
-    @NotNull
-    @NotEmpty
     @Email
     private String email;
-    @NotNull
-    @NotEmpty
     private String password;
-    @NotNull
-    @NotEmpty
     private String countryCode;
-    @NotNull
-    @NotEmpty
     private String phoneNumber;
-    @NotNull
-    @NotEmpty
     private String name;
     private String codeforcesId;
+    private UserRole userRole = UserRole.PARTICIPANT;
+    private UserVerificationStatus userVerificationStatus = UserVerificationStatus.NOT_VERIFIED;
+    private int rating;
 }
