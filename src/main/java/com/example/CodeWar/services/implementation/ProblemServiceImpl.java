@@ -41,15 +41,15 @@ public class ProblemServiceImpl implements ProblemService {
     @Override
     public Map<String, Object> addProblem(ProblemPayload problemPayload) {
         Map<String, Object> response = new HashMap<>();
-
+//
         //Validate all fields for userPayload
         if (!isValidProblem(problemPayload, response)) {
             response.put(STATUS, STATUS_FAILURE);
             return response;
         }
-
+//
         Problem problem = new Problem(problemPayload);
-
+//
         if (!findAuthorFromUser(problemPayload.getAuthorId(), problem, response)) {
             response.put(STATUS, STATUS_FAILURE);
             return response;
@@ -93,7 +93,7 @@ public class ProblemServiceImpl implements ProblemService {
         }else{
             problem.setFileIdealSolution(response.get(MESSAGE).toString());
         }
-
+//
         logger.info("{}", problem);
         problemRepository.save(problem);
         response.put(STATUS, STATUS_SUCCESS);
@@ -113,7 +113,8 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
     private boolean saveFilesAndItsLocation(MultipartFile file, Problem problem, Map<String, Object> response) {
-        response.putAll(fileStorageService.storeFile(file));
+        String location = FILE_BASE_PATH+problem.getProblemTitle().trim()+"/";
+        response.putAll(fileStorageService.storeFile(file,location));
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return false;
         }

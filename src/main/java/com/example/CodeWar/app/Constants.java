@@ -63,5 +63,6 @@ public class Constants {
     public static final String FILE_BASE_PATH = "/media/mohit/1AB6DA39B6DA155B/uploads/";
     public static final String FILE_INVALID_PATH = "Sorry! Filename contains invalid path sequence";
     public static final String FILE_ERROR = "Sorry! Error occurred while storing files!";
+    public static final String FILE_MKDIR = "Sorry! Error occurred while creating destination folder";
 }
 

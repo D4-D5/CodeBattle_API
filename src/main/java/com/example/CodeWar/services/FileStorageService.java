@@ -5,5 +5,5 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 
 public interface FileStorageService {
-    Map<String, Object> storeFile(MultipartFile file);
+    Map<String, Object> storeFile(MultipartFile file,String location);
 }

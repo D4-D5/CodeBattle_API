@@ -8,6 +8,7 @@ import com.example.CodeWar.model.ConfirmationToken;
 import com.example.CodeWar.model.User;
 import com.example.CodeWar.repositories.ConfirmationTokenRepository;
 import com.example.CodeWar.repositories.UserRepository;
+import com.example.CodeWar.services.LoginService;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -27,7 +28,7 @@ import java.util.regex.Pattern;
 import static com.example.CodeWar.app.Constants.*;
 
 @Service
-public class LoginServiceImpl implements com.example.CodeWar.services.LoginService {
+public class LoginServiceImpl implements LoginService {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginServiceImpl.class);
 
@@ -266,7 +267,7 @@ public class LoginServiceImpl implements com.example.CodeWar.services.LoginServi
         mailMessage.setText("To confirm your account, please click here : "
                 + URI_CONFIRM_ACCOUNT + "?token=" + confirmationToken.getConfirmationToken());
         emailSenderService.sendEmail(mailMessage);
-        user.setUserVerificationStatus(UserVerificationStatus.VERIFIED);
+        user.setUserVerificationStatus(UserVerificationStatus.PENDING);
         return true;
     }
 
