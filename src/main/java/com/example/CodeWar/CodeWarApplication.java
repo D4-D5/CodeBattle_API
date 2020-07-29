@@ -12,4 +12,9 @@ public class CodeWarApplication {
         SpringApplication.run(CodeWarApplication.class, args);
     }
 
+//    @Bean
+//    public RestTemplate restTemplate() {
+//        return new RestTemplate();
+//    }
+
 }

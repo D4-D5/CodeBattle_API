@@ -1,4 +1,4 @@
-package com.example.CodeWar.services;
+package com.example.CodeWar.services.implementation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
@@ -7,12 +7,12 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
-public class EmailSenderService {
+public class EmailSenderServiceImpl {
 
-    private JavaMailSender javaMailSender;
+    private final JavaMailSender javaMailSender;
 
     @Autowired
-    public EmailSenderService(JavaMailSender javaMailSender) {
+    public EmailSenderServiceImpl(JavaMailSender javaMailSender) {
         this.javaMailSender = javaMailSender;
     }
 

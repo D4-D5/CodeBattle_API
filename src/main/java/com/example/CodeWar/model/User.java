@@ -2,15 +2,14 @@ package com.example.CodeWar.model;
 
 import com.example.CodeWar.app.UserRole;
 import com.example.CodeWar.app.UserVerificationStatus;
+import com.example.CodeWar.dto.UserPayload;
 import lombok.Data;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.validation.constraints.Email;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+import java.util.Objects;
 
 @Entity
 @Data
@@ -19,15 +18,36 @@ public class User {
     @Id
     @GeneratedValue
     private long id;
-    private String userName;
+    private String codeBattleId;
     @Email
     private String email;
     private String password;
-    private String countryCode;
+    private String countryCode = "+91";
     private String phoneNumber;
     private String name;
     private String codeforcesId;
     private UserRole userRole = UserRole.PARTICIPANT;
     private UserVerificationStatus userVerificationStatus = UserVerificationStatus.NOT_VERIFIED;
     private int rating;
+    private int maxRating;
+    private String country;
+    private String city;
+    private String organization;
+    private String avatar;
+    private String titlePhoto;
+
+    public User(UserPayload userPayload) {
+        this.codeBattleId = userPayload.getCodeBattleId();
+        this.email = userPayload.getEmail();
+        this.countryCode = userPayload.getCountryCode();
+        this.phoneNumber = userPayload.getPhoneNumber();
+        this.name = userPayload.getName();
+        this.codeforcesId = userPayload.getCodeforcesId();
+        this.password = userPayload.getPassword();
+        this.userRole = Objects.requireNonNullElse(userPayload.getUserRole(), UserRole.PARTICIPANT);
+    }
+
+    public User() {
+
+    }
 }

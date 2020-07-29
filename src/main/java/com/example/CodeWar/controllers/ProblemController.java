@@ -3,33 +3,18 @@ package com.example.CodeWar.controllers;
 
 import com.example.CodeWar.app.Constants;
 import com.example.CodeWar.dto.ProblemPayload;
-import com.example.CodeWar.model.Problem;
-import com.example.CodeWar.model.Tags;
-import com.example.CodeWar.repositories.ProblemRepository;
 import com.example.CodeWar.services.ProblemService;
+import com.example.CodeWar.services.implementation.ProblemServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.*;
+import java.util.Map;
 
-import static com.example.CodeWar.app.Constants.*;
+import static com.example.CodeWar.app.Constants.STATUS_FAILURE;
 
 @RestController
 @RequestMapping(path = "/api")
@@ -43,9 +28,19 @@ public class ProblemController {
     private static final Logger logger = LoggerFactory.getLogger(ProblemController.class);
 
     @PostMapping("/createProblem")
-    public ResponseEntity<Map<String, Object>> uploadToLocalFileSystem(@ModelAttribute ProblemPayload problemPayload) {
+    public ResponseEntity<Map<String, Object>> addProblem(@ModelAttribute ProblemPayload problemPayload) {
         logger.info("Problem Payload is -> {}", problemPayload);
         Map<String, Object> response = problemService.addProblem(problemPayload);
+        if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping("/getProblems")
+    public ResponseEntity<Map<String, Object>> getProblems(@RequestParam String authorId) {
+        logger.info(authorId);
+        Map<String, Object> response = problemService.getProblems(authorId);
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
