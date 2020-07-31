@@ -9,7 +9,7 @@ public class Constants {
     public static final String REASON = "reason";
     public static final String NUMBER_NOT_REGISTERED = "NUMBER_NOT_REGISTERED";
     public static final String USER_NOT_REGISTERED = "Coder not found";
-    public static final String WRONG_PASSWORD = "Wrong password";
+    public static final String BAD_CREDENTIALS = "Either codeBattleId or password is incorrect";
     public static final String INVALID_ARGUMENT = "Invalid Arguments";
     public static final String USER_ID_TAKEN = "CodeWarId Already Taken";
     public static final String PHONE_NUMBER_TAKEN = "Phone Number Already In Use";
@@ -52,12 +52,17 @@ public class Constants {
     public static final String PROBLEM_TEST_OUTPUT_IS_NULL = "Problem output test cases cannot be empty";
     public static final String PROBLEM_SAMPLE_INPUT_IS_NULL = "Problem input sample cases cannot be empty";
     public static final String PROBLEM_SAMPLE_OUTPUT_IS_NULL = "Problem output sample cases cannot be empty";
-    public static final String PROBLEM_TIME_LIMIT_IS_INVALID = "Problem time limit is invalid";
+    public static final String PROBLEM_TIME_LIMIT_IS_INVALID = "Problem time limit is invalid, must be >=1";
     public static final String PROBLEM_MEMORY_LIMIT_IS_INVALID = "Problem memory limit is invalid";
     public static final String PROBLEM_AUTHOR_IS_NULL = "Problem authorID cannot be empty";
     public static final String AUTHOR_DO_NOT_HAVE_ACCESS = "Author do not have access rights to create problem";
     public static final String AUTHOR_ID_NOT_FOUND = "No author found using author id";
     public static final String DIFFICULTY_LEVEL_IS_NULL = "Difficulty level is not specified";
+    public static final String PROBLEM_NOT_FOUND = "No problem found with this problem ID";
+    public static final String PROBLEM_ID_IS_NULL = "Please specify the problem Id to be updated";
+    public static final String PROBLEM_UNAUTHORIZED = "Problem is not in draft, so cannot modify";
+    public static final String PROBLEM_ALREADY_PUBLISHED = "Problem with this ID is already published";
+    public static final String PROBLEM_IS_IN_DRAFT = "Problem is still in draft state, so cannot be published";
 
     //File Storage Locations
     public static final String FILE_BASE_PATH = "/media/mohit/1AB6DA39B6DA155B/uploads/";

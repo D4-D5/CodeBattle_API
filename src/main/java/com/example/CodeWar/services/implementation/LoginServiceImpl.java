@@ -2,12 +2,14 @@ package com.example.CodeWar.services.implementation;
 
 import com.example.CodeWar.app.UserVerificationStatus;
 import com.example.CodeWar.dto.CodeforcesProfile;
+import com.example.CodeWar.dto.JwtAuthenticationResponse;
 import com.example.CodeWar.dto.LoginPayload;
 import com.example.CodeWar.dto.UserPayload;
 import com.example.CodeWar.model.ConfirmationToken;
 import com.example.CodeWar.model.User;
 import com.example.CodeWar.repositories.ConfirmationTokenRepository;
 import com.example.CodeWar.repositories.UserRepository;
+import com.example.CodeWar.security.JwtTokenProvider;
 import com.example.CodeWar.services.LoginService;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -17,6 +19,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
@@ -31,6 +39,15 @@ import static com.example.CodeWar.app.Constants.*;
 public class LoginServiceImpl implements LoginService {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginServiceImpl.class);
+
+    @Autowired
+    AuthenticationManager authenticationManager;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
+    @Autowired
+    JwtTokenProvider tokenProvider;
 
     @Autowired
     private EmailSenderServiceImpl emailSenderService;
@@ -53,27 +70,26 @@ public class LoginServiceImpl implements LoginService {
             return response;
         }
 
-        // Fetch the user as per codeBattleId
-        User user = userRepository.findByCodeBattleId(loginPayload.getCodeBattleId());
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginPayload.getCodeBattleId(),
+                            loginPayload.getPassword()
+                    )
+            );
 
-        //If we do not found any such username
-        if (Objects.isNull(user)) {
-            response.put(STATUS, STATUS_FAILURE);
-            response.put(REASON, USER_NOT_REGISTERED);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            String jwt = tokenProvider.generateToken(authentication);
+            response.put(STATUS,STATUS_SUCCESS);
+            response.put(MESSAGE,new JwtAuthenticationResponse(jwt));
             return response;
         }
-
-        //If password is matched then return success
-        if (user.getPassword().equals(loginPayload.getPassword())) {
-            response.put(STATUS, STATUS_SUCCESS);
-            logger.info("{}",response);
+        catch (BadCredentialsException e){
+            response.put(STATUS,STATUS_FAILURE);
+            response.put(REASON,BAD_CREDENTIALS);
             return response;
         }
-
-        //Password didn't matched so return failure
-        response.put(STATUS, STATUS_FAILURE);
-        response.put(REASON, WRONG_PASSWORD);
-        return response;
     }
 
 
@@ -98,9 +114,12 @@ public class LoginServiceImpl implements LoginService {
             return response;
         }
 
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         //Insert the user payload to database
         userRepository.save(user);
+
+        logger.info("This is final user that saved {}",user);
 
         //send verification mail
         if (!sendEmailVerification(user, user.getEmail(), response)) {

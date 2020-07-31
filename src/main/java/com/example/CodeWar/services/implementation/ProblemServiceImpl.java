@@ -1,6 +1,7 @@
 package com.example.CodeWar.services.implementation;
 
 import com.example.CodeWar.app.Constants;
+import com.example.CodeWar.app.ProblemStatus;
 import com.example.CodeWar.app.UserRole;
 import com.example.CodeWar.dto.ProblemPayload;
 import com.example.CodeWar.model.Problem;
@@ -60,38 +61,36 @@ public class ProblemServiceImpl implements ProblemService {
             return response;
         }
 
-        if (!saveFilesAndItsLocation(problemPayload.getFileSampleInput(), problem, response)) {
-            return response;
-        }
-        else {
+
+
+        if (saveFilesAndItsLocation(problemPayload.getFileSampleInput(), problem, response)) {
             problem.setFileSampleInput(response.get(MESSAGE).toString());
-        }
-
-        if (!saveFilesAndItsLocation(problemPayload.getFileSampleOutput(), problem, response)) {
+        } else {
             return response;
         }
-        else{
+
+        if (saveFilesAndItsLocation(problemPayload.getFileSampleOutput(), problem, response)) {
             problem.setFileSampleOutput(response.get(MESSAGE).toString());
-        }
-
-        if (!saveFilesAndItsLocation(problemPayload.getFileInputTestCase(), problem, response)) {
+        } else {
             return response;
         }
-        else{
+
+        if (saveFilesAndItsLocation(problemPayload.getFileInputTestCase(), problem, response)) {
             problem.setFileInputTestCase(response.get(MESSAGE).toString());
-        }
-
-        if (!saveFilesAndItsLocation(problemPayload.getFileOutputTestCase(), problem, response)) {
+        } else {
             return response;
         }
-        else{
+
+        if (saveFilesAndItsLocation(problemPayload.getFileOutputTestCase(), problem, response)) {
             problem.setFileOutputTestCase(response.get(MESSAGE).toString());
+        } else {
+            return response;
         }
 
-        if (!saveFilesAndItsLocation(problemPayload.getFileIdealSolution(), problem, response)) {
-            return response;
-        }else{
+        if (saveFilesAndItsLocation(problemPayload.getFileIdealSolution(), problem, response)) {
             problem.setFileIdealSolution(response.get(MESSAGE).toString());
+        } else {
+            return response;
         }
 //
         logger.info("{}", problem);
@@ -106,31 +105,162 @@ public class ProblemServiceImpl implements ProblemService {
         Map<String, Object> response = new HashMap<>();
         logger.info("yaha tk bhi aa gaya");
         List<Problem> problems = problemRepository.getListOfUsers(authorId);
-        logger.info("{}",problems);
-        response.put(MESSAGE,problems);
+        logger.info("{}", problems);
+        response.put(MESSAGE, problems);
+        response.put(STATUS, STATUS_SUCCESS);
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> updateProblem(ProblemPayload problemPayload) {
+        Map<String, Object> response = new HashMap<>();
+
+        if(problemPayload.getId()==0){
+            response.put(STATUS,STATUS_FAILURE);
+            response.put(REASON,PROBLEM_ID_IS_NULL);
+            return response;
+        }
+
+        Optional<Problem> problem1 = problemRepository.findById(problemPayload.getId());
+        if(problem1.isPresent()){
+            if(!ProblemStatus.IN_DRAFT.equals(problem1.get().getProblemStatus())){
+                response.put(STATUS,STATUS_FAILURE);
+                response.put(REASON,PROBLEM_UNAUTHORIZED);
+                return response;
+            }
+        }
+        else {
+            response.put(STATUS,STATUS_FAILURE);
+            response.put(REASON,PROBLEM_NOT_FOUND);
+            return response;
+        }
+
+        //Check if any problem exits with this problem ID
+        if(!problemRepository.existsById(problemPayload.getId())){
+            response.put(STATUS,STATUS_FAILURE);
+            response.put(REASON,PROBLEM_NOT_FOUND);
+            return response;
+        }
+
+        //Validate all fields for userPayload
+        if (!isValidProblem(problemPayload, response)) {
+            response.put(STATUS, STATUS_FAILURE);
+            return response;
+        }
+//
+        Problem problem = new Problem(problemPayload);
+
+        problem.setId(problemPayload.getId());
+//
+        if (!findAuthorFromUser(problemPayload.getAuthorId(), problem, response)) {
+            response.put(STATUS, STATUS_FAILURE);
+            return response;
+        }
+
+        if (!addTagsToProblem(problemPayload.getTags(), problem, response)) {
+            response.put(STATUS, STATUS_FAILURE);
+            return response;
+        }
+
+        if (saveFilesAndItsLocation(problemPayload.getFileSampleInput(), problem, response)) {
+            problem.setFileSampleInput(response.get(MESSAGE).toString());
+        } else {
+            return response;
+        }
+
+        if (saveFilesAndItsLocation(problemPayload.getFileSampleOutput(), problem, response)) {
+            problem.setFileSampleOutput(response.get(MESSAGE).toString());
+        } else {
+            return response;
+        }
+
+        if (saveFilesAndItsLocation(problemPayload.getFileInputTestCase(), problem, response)) {
+            problem.setFileInputTestCase(response.get(MESSAGE).toString());
+        } else {
+            return response;
+        }
+
+        if (saveFilesAndItsLocation(problemPayload.getFileOutputTestCase(), problem, response)) {
+            problem.setFileOutputTestCase(response.get(MESSAGE).toString());
+        } else {
+            return response;
+        }
+
+        if(!Objects.isNull(problemPayload.getFileIdealSolution())) {
+            if (saveFilesAndItsLocation(problemPayload.getFileIdealSolution(), problem, response)) {
+                problem.setFileIdealSolution(response.get(MESSAGE).toString());
+            } else {
+                return response;
+            }
+        }
+//
+        logger.info("{}", problem);
+        problemRepository.save(problem);
+        response.put(STATUS, STATUS_SUCCESS);
+        response.put(MESSAGE, problem);
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> deleteProblem(long id) {
+        Map<String, Object> response = new HashMap<>();
+        Optional<Problem> problem = problemRepository.findById(id);
+        if(problem.isEmpty()){
+            response.put(REASON,PROBLEM_NOT_FOUND);
+        }
+        else if(!ProblemStatus.IN_DRAFT.equals(problem.get().getProblemStatus())){
+            response.put(REASON,PROBLEM_UNAUTHORIZED);
+        }
+        if(response.containsKey(REASON)){
+            response.put(STATUS,STATUS_FAILURE);
+            return response;
+        }
+        problemRepository.deleteById(id);
         response.put(STATUS,STATUS_SUCCESS);
         return response;
     }
 
-    private boolean saveFilesAndItsLocation(MultipartFile file, Problem problem, Map<String, Object> response) {
-        String location = FILE_BASE_PATH+problem.getProblemTitle().trim()+"/";
-        response.putAll(fileStorageService.storeFile(file,location));
-        if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
-            return false;
+    @Override
+    public Map<String, Object> publishProblem(long id) {
+        Map<String, Object> response = new HashMap<>();
+        Optional<Problem> problem = problemRepository.findById(id);
+        logger.info("Problem to be publish {}",problem);
+        if(!problem.isPresent()){
+            response.put(REASON,PROBLEM_NOT_FOUND);
         }
-        return true;
+        else if(ProblemStatus.IN_DRAFT.equals(problem.get().getProblemStatus())){
+            response.put(REASON,PROBLEM_IS_IN_DRAFT);
+        }
+        else if(ProblemStatus.PUBLISHED.equals(problem.get().getProblemStatus())){
+            response.put(REASON,PROBLEM_ALREADY_PUBLISHED);
+        }
+        if(response.containsKey(REASON)){
+            response.put(STATUS,STATUS_FAILURE);
+            return response;
+        }
+        problem.get().setProblemStatus(ProblemStatus.PUBLISHED);
+        problemRepository.save(problem.get());
+        response.put(STATUS,STATUS_SUCCESS);
+        return response;
+    }
+
+
+    private boolean saveFilesAndItsLocation(MultipartFile file, Problem problem, Map<String, Object> response) {
+        String location = FILE_BASE_PATH + problem.getId() + "/";
+        response.putAll(fileStorageService.storeFile(file, location));
+        return !STATUS_FAILURE.equals(response.get(Constants.STATUS).toString());
     }
 
     private boolean addTagsToProblem(Set<String> tags, Problem problem, Map<String, Object> response) {
-        logger.info("mai tag add krne aa gaya {}",tags);
+        logger.info("mai tag add krne aa gaya {}", tags);
         for (String tag : tags) {
             String tagName = tag.toLowerCase();
             if (!tagRepository.existsByTagNameIgnoreCase(tagName)) {
                 tagRepository.save(new Tag(tagName));
             }
             problem.getTags().add(tagRepository.findByTagNameIgnoreCase(tagName));
-            logger.info("This is tag: "+tagName);
-            logger.info("This are all the tags : {}",problem.getTags());
+            logger.info("This is tag: " + tagName);
+            logger.info("This are all the tags : {}", problem.getTags());
         }
         return true;
     }

@@ -1,6 +1,7 @@
 package com.example.CodeWar.model;
 
 import com.example.CodeWar.app.DifficultyLevel;
+import com.example.CodeWar.app.ProblemStatus;
 import com.example.CodeWar.dto.ProblemPayload;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
@@ -31,6 +32,7 @@ public class Problem {
     private String fileInputTestCase;
     private String fileOutputTestCase;
     private String fileIdealSolution;
+    private ProblemStatus problemStatus = ProblemStatus.IN_DRAFT;
     @OneToOne
     private User authorId;
     private String ioExplanation;
