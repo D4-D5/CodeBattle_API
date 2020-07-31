@@ -1,10 +1,10 @@
 package com.example.CodeWar.dto;
 
+import com.example.CodeWar.app.DifficultyLevel;
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import java.util.Set;
 
@@ -21,7 +21,7 @@ public class ProblemPayload {
     private int memoryLimit;
     private int acceptedSubmissions = 0;
     private int totalSubmissions = 0;
-    private String difficultyLevel;
+    private DifficultyLevel difficultyLevel;
     private MultipartFile fileSampleInput;
     private MultipartFile fileSampleOutput;
     private MultipartFile fileInputTestCase;

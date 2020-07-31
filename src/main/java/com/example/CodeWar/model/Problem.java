@@ -1,12 +1,13 @@
 package com.example.CodeWar.model;
 
+import com.example.CodeWar.app.DifficultyLevel;
+import com.example.CodeWar.dto.ProblemPayload;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
-import org.springframework.web.multipart.MultipartFile;
+import lombok.ToString;
 
 import javax.persistence.*;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -24,7 +25,7 @@ public class Problem {
     private int memoryLimit;
     private int acceptedSubmissions = 0;
     private int totalSubmissions = 0;
-    private String difficultyLevel;
+    private DifficultyLevel difficultyLevel;
     private String fileSampleInput;
     private String fileSampleOutput;
     private String fileInputTestCase;
@@ -34,6 +35,22 @@ public class Problem {
     private User authorId;
     private String ioExplanation;
     private int maxCodeSize;
-    @ManyToMany(cascade = CascadeType.ALL)
-    private Set<Tags> tags = new HashSet<>();
+    @ManyToMany
+    private Set<Tag> tags = new HashSet<>();
+
+    public Problem(ProblemPayload problemPayload) {
+        this.problemStatement = problemPayload.getProblemStatement();
+        this.problemTitle = problemPayload.getProblemTitle();
+        this.inputSpecification = problemPayload.getInputSpecification();
+        this.outputSpecification = problemPayload.getOutputSpecification();
+        this.timeLimit = problemPayload.getTimeLimit();
+        this.memoryLimit = problemPayload.getMemoryLimit();
+        this.difficultyLevel = problemPayload.getDifficultyLevel();
+        this.ioExplanation = problemPayload.getIoExplanation();
+        this.maxCodeSize = problemPayload.getMaxCodeSize();
+    }
+
+    public Problem() {
+
+    }
 }

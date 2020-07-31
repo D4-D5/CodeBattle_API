@@ -1,5 +1,6 @@
 package com.example.CodeWar.model;
 
+
 import javax.persistence.*;
 import java.util.Date;
 import java.util.UUID;
@@ -25,7 +26,7 @@ public class ConfirmationToken {
         confirmationToken = UUID.randomUUID().toString();
     }
 
-    public ConfirmationToken(){
+    public ConfirmationToken() {
 
     }
 

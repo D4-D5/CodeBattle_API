@@ -7,7 +7,7 @@ import javax.validation.constraints.NotNull;
 @Data
 public class LoginPayload {
     @NotNull
-    private String userName;
+    private String codeBattleId;
     @NotNull
     private String password;
 }
