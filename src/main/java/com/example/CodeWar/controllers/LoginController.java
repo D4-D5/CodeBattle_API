@@ -51,6 +51,7 @@ public class LoginController {
 
     @GetMapping(path = "/allUser")
     public ResponseEntity<Map<String, Object>> getAllUsers() {
+        logger.info("yaha hu ki nahi");
         Map<String, Object> response = loginService.getAllUsers();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

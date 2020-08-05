@@ -6,13 +6,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import java.util.HashSet;
 import java.util.Set;
 
 @Data
 public class ProblemPayload {
-    @Id
-    @GeneratedValue
-    private int id;
+    private long id;
     private String problemStatement;
     private String problemTitle;
     private String inputSpecification;
@@ -30,5 +29,5 @@ public class ProblemPayload {
     private String authorId;
     private String ioExplanation;
     private int maxCodeSize;
-    private Set<String> tags;
+    private Set<String> tags = new HashSet<>();
 }

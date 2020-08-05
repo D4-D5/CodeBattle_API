@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -47,22 +48,33 @@ public class ProblemController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @PostMapping("/updateProblem")
+    public ResponseEntity<Map<String, Object>> updateProblem(@ModelAttribute ProblemPayload problemPayload) {
+        logger.info("Problem Payload is -> {}", problemPayload);
+        Map<String, Object> response = problemService.updateProblem(problemPayload);
+        if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 
-//    @GetMapping("/download/{fileName:.+}")
-//    public ResponseEntity downloadFileFromLocal(@PathVariable String fileName) {
-//
-//        Path path = Paths.get(fileBasePath + fileName);
-//        Resource resource = null;
-//        try {
-//            resource = new UrlResource(path.toUri());
-//        } catch (MalformedURLException e) {
-//            e.printStackTrace();
-//        }
-//        String contentType = "application/octet-stream";
-//        return ResponseEntity.ok()
-//                .contentType(MediaType.parseMediaType(contentType))
-//                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
-//                .body(resource);
-//    }
+    @DeleteMapping("/deleteProblem")
+    public ResponseEntity<Map<String, Object>> deleteProblem(@RequestParam long id) {
+        logger.info("Problem Payload is -> {}", id);
+        Map<String, Object> response = problemService.deleteProblem(id);
+        if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 
+    @PostMapping("/publishProblem")
+    public ResponseEntity<Map<String, Object>> publishProblem(@RequestParam long id) {
+        logger.info("Problem Payload is -> {}", id);
+        Map<String, Object> response = problemService.publishProblem(id);
+        if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }
