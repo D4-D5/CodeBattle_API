@@ -6,6 +6,7 @@ public class Constants {
     public static final String STATUS_FAILURE = "failure";
     public static final String STATUS_SUCCESS = "success";
     //reasons
+    public static final String PAYLOAD_IS_NULL = "Payload cannot be empty!";
     public static final String REASON = "reason";
     public static final String NUMBER_NOT_REGISTERED = "NUMBER_NOT_REGISTERED";
     public static final String USER_NOT_REGISTERED = "Coder not found";
@@ -69,5 +70,13 @@ public class Constants {
     public static final String FILE_INVALID_PATH = "Sorry! Filename contains invalid path sequence";
     public static final String FILE_ERROR = "Sorry! Error occurred while storing files!";
     public static final String FILE_MKDIR = "Sorry! Error occurred while creating destination folder";
+
+    //Lobby
+    public static final String ROOM_ID_NULL = "Room Id cannot be empty!";
+    public static final String OWNER_IS_NULL = "Owner cannot be empty!";
+    public static final String CONTEST_TYPE_IS_NULL = "contest type cannot be empty!";
+    public static final String ROOM_ID_IN_USE = "Given room id is already in use";
+    public static final String ROOM_ID_NOT_FOUND = "Room Id not found";
+    public static final String CODEBATTLE_ID_NOT_FOUND = "User with the codeBattle ID not found";
 }
 
