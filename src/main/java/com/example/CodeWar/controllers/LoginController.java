@@ -24,6 +24,7 @@ import static com.example.CodeWar.app.Constants.*;
 public class LoginController {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
+
     @Autowired
     private LoginService loginService;
 
