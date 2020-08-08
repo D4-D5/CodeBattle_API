@@ -87,10 +87,13 @@ public class ProblemServiceImpl implements ProblemService {
             return response;
         }
 
-        if (saveFilesAndItsLocation(problemPayload.getFileIdealSolution(), problem, response)) {
-            problem.setFileIdealSolution(response.get(MESSAGE).toString());
-        } else {
-            return response;
+
+        if(!Objects.isNull(problemPayload.getFileIdealSolution())) {
+            if (saveFilesAndItsLocation(problemPayload.getFileIdealSolution(), problem, response)) {
+                problem.setFileIdealSolution(response.get(MESSAGE).toString());
+            } else {
+                return response;
+            }
         }
 //
         logger.info("{}", problem);
@@ -104,7 +107,7 @@ public class ProblemServiceImpl implements ProblemService {
     public Map<String, Object> getProblems(String authorId) {
         Map<String, Object> response = new HashMap<>();
         logger.info("yaha tk bhi aa gaya");
-        List<Problem> problems = problemRepository.getListOfUsers(authorId);
+        List<Problem> problems = problemRepository.getListOfProblemsByUserName(authorId);
         logger.info("{}", problems);
         response.put(MESSAGE, problems);
         response.put(STATUS, STATUS_SUCCESS);
@@ -246,7 +249,7 @@ public class ProblemServiceImpl implements ProblemService {
 
 
     private boolean saveFilesAndItsLocation(MultipartFile file, Problem problem, Map<String, Object> response) {
-        String location = FILE_BASE_PATH + problem.getId() + "/";
+        String location = FILE_BASE_PATH + problem.getDifficultyLevel()+"_"+problem.getProblemTitle() + "/";
         response.putAll(fileStorageService.storeFile(file, location));
         return !STATUS_FAILURE.equals(response.get(Constants.STATUS).toString());
     }

@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.Map;
 
 import static com.example.CodeWar.app.Constants.STATUS_FAILURE;
@@ -27,7 +28,7 @@ public class LobbyController {
 
     @PostMapping(path = "/createLobby")
     public ResponseEntity<Map<String, Object>> createLobby(@RequestBody CreateLobbyPayload createLobbyPayload) {
-        logger.info("Login Request with request object:{}", createLobbyPayload);
+        logger.info("create lobby Request with request object:{}", createLobbyPayload);
         Map<String, Object> response = lobbyService.createLobby(createLobbyPayload);
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -37,7 +38,7 @@ public class LobbyController {
 
     @PostMapping(path = "/addContestant")
     public ResponseEntity<Map<String, Object>> addContestant(@RequestBody ContestantPayload contestantPayload) {
-        logger.info("Login Request with request object:{}", contestantPayload);
+        logger.info("add contestant Request with request object:{}", contestantPayload);
         Map<String, Object> response = lobbyService.addContestant(contestantPayload);
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -47,28 +48,8 @@ public class LobbyController {
 
     @PostMapping(path = "/getContestants")
     public ResponseEntity<Map<String, Object>> getContestants(@RequestParam String roomId) {
-//        logger.info("Login Request with request object:{}", contestantPayload);
+//        logger.info("get contestants Request with request object:{}", contestantPayload);
         Map<String, Object> response = lobbyService.getContestants(roomId);
-        if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-        }
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    @PostMapping(path = "/startContest")
-    public ResponseEntity<Map<String, Object>> startContest(@RequestBody StartContestPayload startContestPayload) {
-        logger.info("Login Request with request object:{}", startContestPayload);
-        Map<String, Object> response = lobbyService.startContest(startContestPayload);
-        if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-        }
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    @PostMapping(path = "/getLeaderboard")
-    public ResponseEntity<Map<String, Object>> getLeaderboard(@RequestParam String roomId) {
-//        logger.info("Login Request with request object:{}", contestantPayload);
-        Map<String, Object> response = lobbyService.getLeaderboard(roomId);
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
