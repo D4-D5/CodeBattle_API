@@ -12,7 +12,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Data
 public class Problem {
 
     @Id
@@ -39,6 +38,8 @@ public class Problem {
     private int maxCodeSize;
     @ManyToMany
     private Set<Tag> tags = new HashSet<>();
+    @ManyToMany(mappedBy = "solvedProblems")
+    private Set<User> solvedByUsers;
 
     public Problem(ProblemPayload problemPayload) {
         this.problemStatement = problemPayload.getProblemStatement();
@@ -55,4 +56,165 @@ public class Problem {
     public Problem() {
 
     }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public String getProblemStatement() {
+        return problemStatement;
+    }
+
+    public void setProblemStatement(String problemStatement) {
+        this.problemStatement = problemStatement;
+    }
+
+    public String getProblemTitle() {
+        return problemTitle;
+    }
+
+    public void setProblemTitle(String problemTitle) {
+        this.problemTitle = problemTitle;
+    }
+
+    public String getInputSpecification() {
+        return inputSpecification;
+    }
+
+    public void setInputSpecification(String inputSpecification) {
+        this.inputSpecification = inputSpecification;
+    }
+
+    public String getOutputSpecification() {
+        return outputSpecification;
+    }
+
+    public void setOutputSpecification(String outputSpecification) {
+        this.outputSpecification = outputSpecification;
+    }
+
+    public int getTimeLimit() {
+        return timeLimit;
+    }
+
+    public void setTimeLimit(int timeLimit) {
+        this.timeLimit = timeLimit;
+    }
+
+    public int getMemoryLimit() {
+        return memoryLimit;
+    }
+
+    public void setMemoryLimit(int memoryLimit) {
+        this.memoryLimit = memoryLimit;
+    }
+
+    public int getAcceptedSubmissions() {
+        return acceptedSubmissions;
+    }
+
+    public void setAcceptedSubmissions(int acceptedSubmissions) {
+        this.acceptedSubmissions = acceptedSubmissions;
+    }
+
+    public int getTotalSubmissions() {
+        return totalSubmissions;
+    }
+
+    public void setTotalSubmissions(int totalSubmissions) {
+        this.totalSubmissions = totalSubmissions;
+    }
+
+    public DifficultyLevel getDifficultyLevel() {
+        return difficultyLevel;
+    }
+
+    public void setDifficultyLevel(DifficultyLevel difficultyLevel) {
+        this.difficultyLevel = difficultyLevel;
+    }
+
+    public String getFileSampleInput() {
+        return fileSampleInput;
+    }
+
+    public void setFileSampleInput(String fileSampleInput) {
+        this.fileSampleInput = fileSampleInput;
+    }
+
+    public String getFileSampleOutput() {
+        return fileSampleOutput;
+    }
+
+    public void setFileSampleOutput(String fileSampleOutput) {
+        this.fileSampleOutput = fileSampleOutput;
+    }
+
+    public String getFileInputTestCase() {
+        return fileInputTestCase;
+    }
+
+    public void setFileInputTestCase(String fileInputTestCase) {
+        this.fileInputTestCase = fileInputTestCase;
+    }
+
+    public String getFileOutputTestCase() {
+        return fileOutputTestCase;
+    }
+
+    public void setFileOutputTestCase(String fileOutputTestCase) {
+        this.fileOutputTestCase = fileOutputTestCase;
+    }
+
+    public String getFileIdealSolution() {
+        return fileIdealSolution;
+    }
+
+    public void setFileIdealSolution(String fileIdealSolution) {
+        this.fileIdealSolution = fileIdealSolution;
+    }
+
+    public ProblemStatus getProblemStatus() {
+        return problemStatus;
+    }
+
+    public void setProblemStatus(ProblemStatus problemStatus) {
+        this.problemStatus = problemStatus;
+    }
+
+    public User getAuthorId() {
+        return authorId;
+    }
+
+    public void setAuthorId(User authorId) {
+        this.authorId = authorId;
+    }
+
+    public String getIoExplanation() {
+        return ioExplanation;
+    }
+
+    public void setIoExplanation(String ioExplanation) {
+        this.ioExplanation = ioExplanation;
+    }
+
+    public int getMaxCodeSize() {
+        return maxCodeSize;
+    }
+
+    public void setMaxCodeSize(int maxCodeSize) {
+        this.maxCodeSize = maxCodeSize;
+    }
+
+    public Set<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<Tag> tags) {
+        this.tags = tags;
+    }
+
 }

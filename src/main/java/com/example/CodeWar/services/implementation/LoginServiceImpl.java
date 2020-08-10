@@ -6,8 +6,10 @@ import com.example.CodeWar.dto.JwtAuthenticationResponse;
 import com.example.CodeWar.dto.LoginPayload;
 import com.example.CodeWar.dto.UserPayload;
 import com.example.CodeWar.model.ConfirmationToken;
+import com.example.CodeWar.model.Problem;
 import com.example.CodeWar.model.User;
 import com.example.CodeWar.repositories.ConfirmationTokenRepository;
+import com.example.CodeWar.repositories.ProblemRepository;
 import com.example.CodeWar.repositories.UserRepository;
 import com.example.CodeWar.security.JwtTokenProvider;
 import com.example.CodeWar.services.LoginService;
@@ -26,6 +28,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
@@ -57,6 +60,9 @@ public class LoginServiceImpl implements LoginService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ProblemRepository problemRepository;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -109,13 +115,18 @@ public class LoginServiceImpl implements LoginService {
         User user = new User(userPayload);
 
         //verify CodeforcesID and fetch rating
-        if (!verifyCodeforcesID(user, user.getCodeforcesId(), response)) {
-            response.put(STATUS, STATUS_FAILURE);
-            return response;
+        if(userPayload.getCodeforcesId()!=null && !StringUtils.isEmpty(userPayload.getCodeforcesId()) && !userPayload.getCodeforcesId().isBlank()){
+            if (!verifyCodeforcesID(user, user.getCodeforcesId(), response)) {
+                response.put(STATUS, STATUS_FAILURE);
+                return response;
+            }
+        }
+        else{
+            user.setRating(INITIAL_RATING);
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         //Insert the user payload to database
         userRepository.save(user);
 
@@ -130,7 +141,7 @@ public class LoginServiceImpl implements LoginService {
         logger.info("{}",user);
 
         //response for success
-        response.put(MESSAGE, user);
+//        response.put(MESSAGE, user);
         response.put(STATUS, STATUS_SUCCESS);
         return response;
     }
@@ -216,12 +227,12 @@ public class LoginServiceImpl implements LoginService {
             reasons.add(NAME_IS_NULL);
         }
 
-        //If codeforcesID is null or empty or blank
-        //else If the codeforcesID already exists
-        if (Objects.isNull(userPayload.getCodeforcesId()) || userPayload.getCodeforcesId().isEmpty() || userPayload.getCodeforcesId().isBlank()) {
-            reasons.add(CODEFORCES_IS_NULL);
-        } else if (userRepository.existsByCodeforcesId(userPayload.getCodeforcesId())) {
-            reasons.add(CODEFORCES_ID_TAKEN);
+//        If codeforcesID is not null or not empty or not blank
+//        then check If the codeforcesID already exists
+        if (!Objects.isNull(userPayload.getCodeforcesId()) && !userPayload.getCodeforcesId().isEmpty() && !userPayload.getCodeforcesId().isBlank()) {
+            if (userRepository.existsByCodeforcesId(userPayload.getCodeforcesId())) {
+                reasons.add(CODEFORCES_ID_TAKEN);
+            }
         }
 
 
@@ -249,10 +260,17 @@ public class LoginServiceImpl implements LoginService {
             } else {
                 JsonElement codeforcesProfileJson = codeforcesResponse.getAsJsonArray("result").get(0);
                 CodeforcesProfile codeforcesProfile = gson.fromJson(codeforcesProfileJson, CodeforcesProfile.class);
-
-                //update user class with codeforces fetch values
-                user.setRating((codeforcesProfile.getRating() + codeforcesProfile.getMaxRating()) / 2);
-                user.setMaxRating(Math.max(user.getMaxRating(), user.getRating()));
+                if(Objects.isNull(codeforcesProfile.getRating())){
+                    user.setRating(INITIAL_RATING);
+                    user.setMaxRating(INITIAL_RATING);
+                }
+                else {
+                    //update user class with codeforces fetch values
+                    int avgCodeforcesRating = ((codeforcesProfile.getRating() + codeforcesProfile.getMaxRating()) / 2);
+                    int rating = (int) ((avgCodeforcesRating) / CODEFORCES_TO_CODEBATTLE_FACTOR);
+                    user.setRating(rating);
+                    user.setMaxRating(Math.max((int) (user.getMaxRating() / CODEFORCES_TO_CODEBATTLE_FACTOR), rating));
+                }
                 user.setCountry(codeforcesProfile.getCountry());
                 user.setCity(codeforcesProfile.getCity());
                 user.setOrganization(codeforcesProfile.getOrganization());

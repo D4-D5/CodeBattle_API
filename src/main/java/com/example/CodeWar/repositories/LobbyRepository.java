@@ -10,5 +10,5 @@ import java.util.Optional;
 public interface LobbyRepository extends MongoRepository<Lobby,String> {
     Lobby findByRoomId(String roomId);
 
-    boolean exitsByRoomId(String roomId);
+    boolean existsByRoomId(String roomId);
 }

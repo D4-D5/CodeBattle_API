@@ -2,12 +2,19 @@ package com.example.CodeWar.services.implementation;
 
 import com.example.CodeWar.app.ContestStatus;
 import com.example.CodeWar.app.ContestType;
+import com.example.CodeWar.app.DifficultyLevel;
+import com.example.CodeWar.app.ProblemStatus;
 import com.example.CodeWar.dto.*;
 import com.example.CodeWar.model.Lobby;
+import com.example.CodeWar.model.Problem;
 import com.example.CodeWar.model.User;
 import com.example.CodeWar.repositories.LobbyRepository;
+import com.example.CodeWar.repositories.ProblemRepository;
 import com.example.CodeWar.repositories.UserRepository;
 import com.example.CodeWar.services.LobbyService;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +22,11 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.util.*;
 
 import static com.example.CodeWar.app.Constants.*;
@@ -26,6 +35,7 @@ import static com.example.CodeWar.app.Constants.*;
 public class LobbyServiceImpl implements LobbyService {
 
     private static final Logger logger = LoggerFactory.getLogger(LobbyServiceImpl.class);
+    private static final String ROOM_LISTENER = "/topic/";
 
     @Autowired
     private LobbyRepository lobbyRepository;
@@ -35,6 +45,12 @@ public class LobbyServiceImpl implements LobbyService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SimpMessagingTemplate simpMessagingTemplate;
+
+    @Autowired
+    private ProblemRepository problemRepository;
 
     @Override
     public Map<String, Object> createLobby(CreateLobbyPayload createLobbyPayload) {
@@ -57,7 +73,7 @@ public class LobbyServiceImpl implements LobbyService {
         lobby.getContestants().add(contestant);
 
         //save the lobby to lobby repository
-        lobbyRepository.save(lobby);
+        lobbyRepository.insert(lobby);
 
         response.put(MESSAGE,lobby);
         response.put(STATUS,STATUS_SUCCESS);
@@ -72,7 +88,7 @@ public class LobbyServiceImpl implements LobbyService {
             response.put(REASON,ROOM_ID_NULL);
         }
         else{
-            if(lobbyRepository.exitsByRoomId(createLobbyPayload.getRoomId())){
+            if(lobbyRepository.existsByRoomId(createLobbyPayload.getRoomId())){
                 response.put(REASON,ROOM_ID_IN_USE);
             }
         }
@@ -112,13 +128,13 @@ public class LobbyServiceImpl implements LobbyService {
             Set<Contestant> contestantSet = lobby.getContestants();
             contestantSet.add(contestant);
             update.set("contestants",contestantSet);
-            update.set("startTime",System.currentTimeMillis());
-
             mongoOperations.updateFirst(query,update,Lobby.class);
 
             logger.info("This is contestant {}",contestant);
             logger.info("This is lobby {}",lobby);
             response.put(STATUS,STATUS_SUCCESS);
+            simpMessagingTemplate.convertAndSend(ROOM_LISTENER+contestantPayload.getRoomId(),contestantPayload.getCodeBattleId());
+
         }
         else{
             response.put(REASON,ROOM_ID_NOT_FOUND);
@@ -168,80 +184,5 @@ public class LobbyServiceImpl implements LobbyService {
             response.put(STATUS,STATUS_FAILURE);
         }
         return response;
-    }
-
-    @Override
-    public Map<String, Object> startContest(StartContestPayload startContestPayload) {
-        Map<String,Object> response = new HashMap<>();
-
-        if(!verifyStartContestPayload(startContestPayload,response)){
-            response.put(STATUS,STATUS_FAILURE);
-            return response;
-        }
-
-        Query query = new Query();
-        query.addCriteria(Criteria.where("roomId").is(startContestPayload.getRoomId()));
-
-        Lobby lobby = mongoOperations.findOne(query,Lobby.class);
-
-        if(!Objects.isNull(lobby)){
-
-            List<User> contestantList = new ArrayList<>();
-            for (Contestant contestant:lobby.getContestants()) {
-                User user = userRepository.findByCodeBattleId(contestant.getCodeBattleId());
-                contestantList.add(user);
-            }
-
-            int contestRating = ComputeContestRating(contestantList);
-
-            Update update = new Update();
-            update.set("contestStatus", ContestStatus.LIVE);
-            update.set("rating",contestRating);
-            update.set("questions",getQuestionsForContest(contestRating,contestantList));
-
-            mongoOperations.updateFirst(query,update,Lobby.class);
-            logger.info("This is lobby {}",lobby);
-            response.put(STATUS,STATUS_SUCCESS);
-        }
-        else{
-            response.put(REASON,ROOM_ID_NOT_FOUND);
-            response.put(STATUS,STATUS_FAILURE);
-        }
-        return response;
-    }
-
-    private boolean verifyStartContestPayload(StartContestPayload startContestPayload, Map<String, Object> response) {
-        if(Objects.isNull(startContestPayload)){
-            response.put(REASON,"will give");
-        }
-        if(Objects.isNull(startContestPayload.getRoomId()) || StringUtils.isEmpty(startContestPayload.getRoomId())){
-            response.put(REASON,ROOM_ID_NULL);
-        }
-        if(Objects.isNull(startContestPayload.getOwner()) || StringUtils.isEmpty(startContestPayload.getOwner())){
-            response.put(REASON,OWNER_IS_NULL);
-        }
-        else{
-            if(!userRepository.existsByCodeBattleId(startContestPayload.getOwner())){
-                response.put(REASON,CODEBATTLE_ID_NOT_FOUND);
-            }
-        }
-        return !response.containsKey(REASON);
-    }
-
-    private Set<Long> getQuestionsForContest(int contestRating, List<User> contestantList) {
-        return null;
-    }
-
-    private int ComputeContestRating(List<User> contestantList) {
-        int totalRating = 0;
-        for(User user:contestantList){
-            totalRating = totalRating + user.getRating();
-        }
-        return totalRating/contestantList.size();
-    }
-
-    @Override
-    public Map<String, Object> getLeaderboard(String roomId) {
-        return null;
     }
 }

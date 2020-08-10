@@ -1,5 +1,8 @@
 package com.example.CodeWar.app;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class Constants {
     //status
     public static final String STATUS = "status";
@@ -68,7 +71,7 @@ public class Constants {
     //File Storage Locations
     public static final String FILE_BASE_PATH = "/media/mohit/1AB6DA39B6DA155B/uploads/";
     public static final String FILE_INVALID_PATH = "Sorry! Filename contains invalid path sequence";
-    public static final String FILE_ERROR = "Sorry! Error occurred while storing files!";
+    public static final String FILE_ERROR = "Sorry! Error occurred while handling files!";
     public static final String FILE_MKDIR = "Sorry! Error occurred while creating destination folder";
 
     //Lobby
@@ -78,5 +81,22 @@ public class Constants {
     public static final String ROOM_ID_IN_USE = "Given room id is already in use";
     public static final String ROOM_ID_NOT_FOUND = "Room Id not found";
     public static final String CODEBATTLE_ID_NOT_FOUND = "User with the codeBattle ID not found";
+    public static final String NOT_OWNER = "Sorry! Only owner can start the contest";
+    public static final String CONTEST_IS_ALREADY_LIVE = "Contest is already live";
+    public static final String CONTEST_ENDED = "Contest has ended! ab kch nhi ho  skta";
+    public static final String CONTEST_STARTED = "CONTEST_STARTED";
+
+
+    //Contest Question set
+    public static final List<String> CONTEST_QUESTION_SET = Arrays.asList("200","300","210","120","111","021","012","003");
+    public static final int INITIAL_RATING = 800;
+    public static final double CODEFORCES_TO_CODEBATTLE_FACTOR = 1.5;
+    public static final String CONTESTANT_NOT_ALLOWED = "user with codeBattleId is not contestant of this contest";
+    public static final String CONTEST_NOT_LIVE = "Contest with roomID is not live";
+    public static final String SOURCECODE_IS_NULL = "Source code is empty!";
+
+    //submission
+    public static final int SLEEP_TIME = 1000;
+    public static final long PENALTY_TIME = 300000;
 }
 

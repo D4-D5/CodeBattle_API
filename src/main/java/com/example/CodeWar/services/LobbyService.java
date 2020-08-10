@@ -4,6 +4,7 @@ import com.example.CodeWar.dto.ContestantPayload;
 import com.example.CodeWar.dto.CreateLobbyPayload;
 import com.example.CodeWar.dto.StartContestPayload;
 
+import java.io.IOException;
 import java.util.Map;
 
 public interface LobbyService {
@@ -12,8 +13,4 @@ public interface LobbyService {
     Map<String, Object> addContestant(ContestantPayload contestantPayload);
 
     Map<String, Object> getContestants(String roomId);
-
-    Map<String, Object> startContest(StartContestPayload startContestPayload);
-
-    Map<String, Object> getLeaderboard(String roomId);
 }

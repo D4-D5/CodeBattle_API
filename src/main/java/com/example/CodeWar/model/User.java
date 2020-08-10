@@ -8,8 +8,12 @@ import lombok.Data;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.ManyToMany;
 import javax.validation.constraints.Email;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Entity
 @Data
@@ -35,6 +39,8 @@ public class User {
     private String organization;
     private String avatar;
     private String titlePhoto;
+    @ManyToMany
+    private Set<Problem> solvedProblems = new HashSet<>();
 
     public User(UserPayload userPayload) {
         this.codeBattleId = userPayload.getCodeBattleId();
