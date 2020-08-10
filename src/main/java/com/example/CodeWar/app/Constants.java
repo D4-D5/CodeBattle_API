@@ -93,5 +93,10 @@ public class Constants {
     public static final double CODEFORCES_TO_CODEBATTLE_FACTOR = 1.5;
     public static final String CONTESTANT_NOT_ALLOWED = "user with codeBattleId is not contestant of this contest";
     public static final String CONTEST_NOT_LIVE = "Contest with roomID is not live";
+    public static final String SOURCECODE_IS_NULL = "Source code is empty!";
+
+    //submission
+    public static final int SLEEP_TIME = 1000;
+    public static final long PENALTY_TIME = 300000;
 }
 

@@ -7,4 +7,5 @@ public class Judge0CreateSubmission {
     private int language_id;
     private String source_code;
     private String stdin = "";
+    private String expected_output = "";
 }

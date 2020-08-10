@@ -127,13 +127,6 @@ public class LoginServiceImpl implements LoginService {
 
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        Set<Problem> problemSet = new HashSet<>();
-        problemSet.add(problemRepository.getOne((long) 97));
-        problemSet.add(problemRepository.getOne((long) 112));
-        problemSet.add(problemRepository.getOne((long) 118));
-        problemSet.add(problemRepository.getOne((long) 122));
-        user.getSolvedProblems().addAll(problemSet);
-
         //Insert the user payload to database
         userRepository.save(user);
 

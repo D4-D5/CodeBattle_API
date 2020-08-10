@@ -128,8 +128,6 @@ public class LobbyServiceImpl implements LobbyService {
             Set<Contestant> contestantSet = lobby.getContestants();
             contestantSet.add(contestant);
             update.set("contestants",contestantSet);
-            update.set("startTime",System.currentTimeMillis());
-
             mongoOperations.updateFirst(query,update,Lobby.class);
 
             logger.info("This is contestant {}",contestant);

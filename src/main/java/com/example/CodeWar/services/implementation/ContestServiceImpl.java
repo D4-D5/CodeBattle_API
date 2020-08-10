@@ -32,8 +32,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static com.example.CodeWar.app.Constants.*;
 import static com.example.CodeWar.app.Constants.STATUS_FAILURE;
@@ -104,7 +106,7 @@ public class ContestServiceImpl implements ContestService {
             update.set("contestStatus", ContestStatus.LIVE);
             update.set("rating",contestRating);
             update.set("questions",getQuestionsForContest(contestRating,contestantList));
-//            return response;
+            update.set("startTime",System.currentTimeMillis());
             mongoOperations.updateFirst(query,update,Lobby.class);
             logger.info("This is lobby {}",lobbyRepository.findByRoomId(startContestPayload.getRoomId()));
             response.put(MESSAGE,lobbyRepository.findByRoomId(startContestPayload.getRoomId()));
@@ -277,10 +279,29 @@ public class ContestServiceImpl implements ContestService {
     @Override
     public Map<String, Object> submitProblem(SubmissionPayload submissionPayload) throws UnirestException {
         Map<String,Object> response = new HashMap<>();
+        if(!verifySubmissionPayload(submissionPayload,response)){
+            response.put(STATUS,STATUS_FAILURE);
+            return response;
+        }
         Judge0CreateSubmission body = new Judge0CreateSubmission();
-        body.setLanguage_id(submissionPayload.getLanguageId());
-        body.setSource_code(submissionPayload.getSourceCode());
-//        RequestBodyEntity requestBodyEntity = new RequestBodyEntity();
+        try {
+            body.setLanguage_id(submissionPayload.getLanguageId());
+            body.setSource_code(submissionPayload.getSourceCode());
+            Optional<Problem> problem = problemRepository.findById(submissionPayload.getProblemId());
+            if (problem.isPresent()) {
+                body.setStdin(Files.readString(Path.of(problem.get().getFileInputTestCase())));
+                body.setExpected_output(Files.readString(Path.of(problem.get().getFileOutputTestCase())));
+            } else {
+                response.put(REASON,PROBLEM_TEST_INPUT_IS_NULL);
+                response.put(STATUS,STATUS_FAILURE);
+                return response;
+            }
+        }
+        catch (IOException e){
+            response.put(REASON,FILE_ERROR);
+            response.put(STATUS,STATUS_FAILURE);
+            return response;
+        }
         logger.info("{}",body.toString());
         try {
             HttpResponse<JsonNode> httpResponse = Unirest.post("https://judge0.p.rapidapi.com/submissions")
@@ -293,30 +314,142 @@ public class ContestServiceImpl implements ContestService {
             logger.info("{}",httpResponse.getBody());
             String token = httpResponse.getBody().getObject().getString("token");
             logger.info(token);
-            Object message = getSubmission(token);
-            response.put(MESSAGE,message);
-            response.put(STATUS, STATUS_SUCCESS);
+            TimeUnit.MILLISECONDS.sleep(SLEEP_TIME);
+            getSubmission(token,submissionPayload,response);
+            if(response.containsKey(REASON)){
+                response.put(STATUS,STATUS_FAILURE);
+            }
+            else {
+                response.put(STATUS, STATUS_SUCCESS);
+            }
         }
-        catch (UnirestException e){
+        catch (UnirestException | InterruptedException e){
             response.put(REASON,e);
             response.put(STATUS,STATUS_FAILURE);
         }
         return response;
     }
 
-    private Object getSubmission(String token) {
-            HttpResponse<JsonNode> httpResponse = Unirest.get("https://judge0.p.rapidapi.com/submissions/{token}")
+    private boolean verifySubmissionPayload(SubmissionPayload submissionPayload, Map<String, Object> response) {
+        if(Objects.isNull(submissionPayload)){
+            response.put(REASON,INVALID_ARGUMENT);
+            return false;
+        }
+        if(Objects.isNull(submissionPayload.getCodeBattleId()) || submissionPayload.getCodeBattleId().isEmpty() || submissionPayload.getCodeBattleId().isBlank()){
+            response.put(REASON,USERNAME_IS_NULL);
+        }
+        if(Objects.isNull(submissionPayload.getSourceCode()) || submissionPayload.getSourceCode().isEmpty() || submissionPayload.getSourceCode().isBlank()){
+            response.put(REASON,SOURCECODE_IS_NULL);
+        }
+        if(Objects.isNull(submissionPayload.getRoomId()) || submissionPayload.getRoomId().isEmpty() || submissionPayload.getRoomId().isBlank()){
+            response.put(REASON,ROOM_ID_NULL);
+        }
+        else{
+            Lobby lobby = lobbyRepository.findByRoomId(submissionPayload.getRoomId());
+            if(Objects.isNull(lobby)){
+                response.put(REASON,ROOM_ID_NOT_FOUND);
+            }
+            else{
+                if(!lobby.getQuestions().contains(submissionPayload.getProblemId())){
+                    response.put(REASON,PROBLEM_NOT_FOUND);
+                }
+                if(lobby.getContestants().stream().noneMatch(contestant -> contestant.getCodeBattleId().equals(submissionPayload.getCodeBattleId()))){
+                    response.put(REASON,CODEBATTLE_ID_NOT_FOUND);
+                }
+            }
+        }
+        return !response.containsKey(REASON);
+    }
+
+    private boolean getSubmission(String token, SubmissionPayload submissionPayload, Map<String, Object> response) {
+        try {
+            HttpResponse<JsonNode> httpResponse = Unirest.get("https://judge0.p.rapidapi.com/submissions/{token}?base64_encoded=true")
                     .header("x-rapidapi-host", "judge0.p.rapidapi.com")
                     .header("x-rapidapi-key", "9d099c4f7fmsh89afa8cdfb965f3p123e5fjsn10b6969a328e")
                     .routeParam("token", token)
                     .asJson();
-            logger.info("()()===> {}",httpResponse.getBody());
-            int status = httpResponse.getBody().getObject().getJSONObject("status").getInt("id");
-            if(status<=2){
-                return getSubmission(token);
+            logger.info("()()===> {}", httpResponse.getBody());
+            int statusId = httpResponse.getBody().getObject().getJSONObject("status").getInt("id");
+            if (statusId <= 2) {
+                TimeUnit.MILLISECONDS.sleep(SLEEP_TIME / 2);
+                return getSubmission(token, submissionPayload, response);
             }
-        String stdOut = httpResponse.getBody().getObject().getString("stdout");
-            return stdOut;
+            if (statusId == 3) {
+                updateScore(submissionPayload);
+            } else if (statusId == 4) {
+                addTimePenalty(submissionPayload);
+            }
+
+            String description = httpResponse.getBody().getObject().getJSONObject("status").getString("description");
+            response.put(MESSAGE,description);
+        }
+        catch (UnirestException | InterruptedException e){
+            response.put(REASON,e.getMessage());
+        }
+        return true;
+    }
+
+    private void addTimePenalty(SubmissionPayload submissionPayload) {
+        Lobby lobby = lobbyRepository.findByRoomId(submissionPayload.getRoomId());
+        Set<Contestant> oldContestantSet = lobby.getContestants();
+        Set<Contestant> newContestantSet = new HashSet<>();
+        Query query = new Query();
+        query.addCriteria(Criteria.where("contestants").is(oldContestantSet));
+        for(Contestant contestant:oldContestantSet){
+            if(contestant.getCodeBattleId().equals(submissionPayload.getCodeBattleId())){
+                Contestant newContestant = new Contestant(contestant);
+                newContestant.setPenalty(newContestant.getPenalty()+PENALTY_TIME);
+                newContestantSet.add(newContestant);
+                logger.info("{}",contestant);
+                logger.info("{}",newContestantSet);
+            }
+            else{
+                newContestantSet.add(contestant);
+            }
+        }
+        Update update = new Update();
+        update.set("contestants",newContestantSet);
+        mongoOperations.updateFirst(query,update,Lobby.class);
+    }
+
+    private void updateScore(SubmissionPayload submissionPayload) {
+        Lobby lobby = lobbyRepository.findByRoomId(submissionPayload.getRoomId());
+        boolean problemAlreadySolved = false;
+        Set<Contestant> oldContestantSet = lobby.getContestants();
+        Set<Contestant> newContestantSet = new HashSet<>();
+        Query query = new Query();
+        query.addCriteria(Criteria.where("contestants").is(oldContestantSet));
+        for(Contestant contestant:oldContestantSet){
+            if(contestant.getCodeBattleId().equals(submissionPayload.getCodeBattleId())){
+                if(contestant.getSolvedQuestions().contains(submissionPayload.getProblemId())){
+                    problemAlreadySolved = true;
+                }
+                else {
+                    Contestant newContestant = new Contestant(contestant);
+                    newContestant.getSolvedQuestions().add(submissionPayload.getProblemId());
+                    newContestant.setNumSolved(newContestant.getSolvedQuestions().size());
+                    newContestant.setPenalty(newContestant.getPenalty()+(System.currentTimeMillis()-lobby.getStartTime()));
+                    newContestantSet.add(newContestant);
+                }
+                logger.info("{}",contestant);
+                logger.info("{}",newContestantSet);
+            }
+            else{
+                newContestantSet.add(contestant);
+            }
+        }
+        if(!problemAlreadySolved) {
+            Update update = new Update();
+            update.set("contestants", newContestantSet);
+            mongoOperations.updateFirst(query, update, Lobby.class);
+            User user = userRepository.findByCodeBattleId(submissionPayload.getCodeBattleId());
+            Optional<Problem> problem = problemRepository.findById(submissionPayload.getProblemId());
+            if (!Objects.isNull(user) && problem.isPresent()) {
+                user.getSolvedProblems().add(problem.get());
+                userRepository.save(user);
+            }
+        }
+
     }
 
     private boolean verifyContestantPayload(ContestantPayload contestantPayload, Map<String, Object> response) {
