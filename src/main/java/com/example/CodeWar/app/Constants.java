@@ -1,7 +1,9 @@
 package com.example.CodeWar.app;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Constants {
     //status
@@ -64,9 +66,13 @@ public class Constants {
     public static final String DIFFICULTY_LEVEL_IS_NULL = "Difficulty level is not specified";
     public static final String PROBLEM_NOT_FOUND = "No problem found with this problem ID";
     public static final String PROBLEM_ID_IS_NULL = "Please specify the problem Id to be updated";
-    public static final String PROBLEM_UNAUTHORIZED = "Problem is not in draft, so cannot modify";
+    public static final String PROBLEM_NOT_IN_DRAFT = "Problem is not in draft, so cannot modify";
     public static final String PROBLEM_ALREADY_PUBLISHED = "Problem with this ID is already published";
     public static final String PROBLEM_IS_IN_DRAFT = "Problem is still in draft state, so cannot be published";
+    public static final String PROBLEM_ALREADY_IN_REVIEW = "Problem with this ID is already in review";
+    public static final String PROBLEM_CONSTRAINTS_IS_NULL = "Problem constraints can't be null";
+    public static final String ERROR_TAG = "Error occurred while saving tags";
+    public static final String PROBLEM_IDEAL_SOLUTION_IS_NULL = "Problem solution can't be null";
 
     //File Storage Locations
     public static final String FILE_BASE_PATH = "/media/mohit/1AB6DA39B6DA155B/uploads/";
@@ -84,7 +90,10 @@ public class Constants {
     public static final String NOT_OWNER = "Sorry! Only owner can start the contest";
     public static final String CONTEST_IS_ALREADY_LIVE = "Contest is already live";
     public static final String CONTEST_ENDED = "Contest has ended! ab kch nhi ho  skta";
+    public static final String END_CONTEST = "CONTEST_ENDED";
     public static final String CONTEST_STARTED = "CONTEST_STARTED";
+    public static final String MINIMUM_CONTESTANT = "Minimum 2 contestant must be there to start the contest!";
+    public static final String USER_ALREADY_IN_ROOM = "User already added in contest";
 
 
     //Contest Question set
@@ -94,9 +103,15 @@ public class Constants {
     public static final String CONTESTANT_NOT_ALLOWED = "user with codeBattleId is not contestant of this contest";
     public static final String CONTEST_NOT_LIVE = "Contest with roomID is not live";
     public static final String SOURCECODE_IS_NULL = "Source code is empty!";
+    public static final String CONTESTANT_NOT_LIVE = "Contestant is not live for the contest";
 
     //submission
     public static final int SLEEP_TIME = 1000;
     public static final long PENALTY_TIME = 300000;
+    public static final long CONTEST_RUN_TIME = 60000000;
+    public static final String CODE_SIZE_EXCEEDED = "Maximum code can't be more than 65535 characters";
+    public static final long MAX_CODE_SIZE = 65535;
+    public static final String WRONG_SOLUTION = "Your solution have some issue, either it didnt match output for given input or something else went wrong";
+//    public static final Map<String, Integer> languages = Map.of("cpp",54,"c",50,"java",62,"py",71);
 }
 

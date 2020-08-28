@@ -1,5 +1,6 @@
 package com.example.CodeWar.services.implementation;
 
+import com.example.CodeWar.exception.FileException;
 import com.example.CodeWar.services.FileStorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -22,8 +23,10 @@ import static com.example.CodeWar.app.Constants.*;
 public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
-    public Map<String, Object> storeFile(MultipartFile file,String location) {
-        Map<String, Object> response = new HashMap<>();
+    public String storeFile(MultipartFile file, String location) throws FileException {
+        if(Objects.isNull(file) || file.isEmpty()){
+            return "";
+        }
         System.out.println(location);
         // Normalize file name
         String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
@@ -31,35 +34,28 @@ public class FileStorageServiceImpl implements FileStorageService {
         try {
             // Check if the file's name contains invalid characters
             if (fileName.contains("..")) {
-                response.put(REASON, FILE_INVALID_PATH);
-                response.put(STATUS, STATUS_FAILURE);
-                return response;
+                throw new FileException(FILE_INVALID_PATH);
             }
             //make dir if not already exits
             File folder = new File(location);
             if (!folder.exists()) {
                 if(!folder.mkdirs()){
-                    response.put(REASON, FILE_MKDIR);
-                    response.put(STATUS, STATUS_FAILURE);
-                    return response;
+                    throw new FileException(FILE_MKDIR);
                 }
             }
+            System.out.println("File content tye "+file.getContentType());
             // Copy file to the target location (Replacing existing file with the same name)
             Path path = Paths.get(location + fileName);
             Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
-            response.put(REASON, FILE_ERROR);
-            response.put(STATUS, STATUS_FAILURE);
-            return response;
+            throw new FileException(FILE_ERROR);
         }
         String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/files/download/")
                 .path(fileName)
                 .toUriString();
-        String fileLocation = location+fileName;
-        response.put(MESSAGE, fileLocation);
-        response.put(STATUS, STATUS_SUCCESS);
-        return response;
+        String fileLocation = new StringBuilder().append(location).append(fileName).toString();
+        return fileLocation;
     }
 
 //    public Resource loadFileAsResource(String fileName) {

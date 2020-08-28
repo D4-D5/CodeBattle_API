@@ -20,16 +20,15 @@ public class ProblemResponse {
     private String problemTitle;
     private String inputSpecification;
     private String outputSpecification;
+    private String constraints;
     private int timeLimit;
     private int memoryLimit;
-    private int acceptedSubmissions = 0;
-    private int totalSubmissions = 0;
     private DifficultyLevel difficultyLevel;
-    private String fileSampleInput;
-    private String fileSampleOutput;
+    private String sampleInput;
+    private String sampleOutput;
     private String authorId;
     private String ioExplanation;
-    private int maxCodeSize;
+    private long maxCodeSize;
 
     public ProblemResponse(Problem problem) throws IOException {
         this.id = problem.getId();
@@ -42,8 +41,8 @@ public class ProblemResponse {
         this.difficultyLevel = problem.getDifficultyLevel();
         this.authorId = problem.getAuthorId().getCodeBattleId();
         this.ioExplanation = problem.getIoExplanation();
-        this.maxCodeSize = problem.getMaxCodeSize();
-        this.fileSampleInput = Files.readString(Path.of(problem.getFileInputTestCase()));
-        this.fileSampleOutput = Files.readString(Path.of(problem.getFileOutputTestCase()));
+        this.sampleInput = problem.getSampleInput();
+        this.sampleOutput = problem.getSampleOutput();
+        this.constraints = problem.getConstraints();
     }
 }

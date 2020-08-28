@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -16,16 +17,18 @@ public class ProblemPayload {
     private String problemTitle;
     private String inputSpecification;
     private String outputSpecification;
+    private String constraints;
     private int timeLimit;
     private int memoryLimit;
     private int acceptedSubmissions = 0;
     private int totalSubmissions = 0;
     private DifficultyLevel difficultyLevel;
-    private MultipartFile fileSampleInput;
-    private MultipartFile fileSampleOutput;
-    private MultipartFile fileInputTestCase;
-    private MultipartFile fileOutputTestCase;
-    private MultipartFile fileIdealSolution;
+    private String sampleInput;
+    private String sampleOutput;
+    private List<MultipartFile> fileInputTestCases;
+    private List<MultipartFile> fileOutputTestCases;
+    private String idealSolution;
+    private int idealSolutionLanguageId;
     private String authorId;
     private String ioExplanation;
     private int maxCodeSize;

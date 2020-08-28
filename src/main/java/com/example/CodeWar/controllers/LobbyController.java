@@ -11,9 +11,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.Map;
 
 import static com.example.CodeWar.app.Constants.STATUS_FAILURE;
@@ -27,8 +30,11 @@ public class LobbyController {
     private LobbyService lobbyService;
 
     @PostMapping(path = "/createLobby")
-    public ResponseEntity<Map<String, Object>> createLobby(@RequestBody CreateLobbyPayload createLobbyPayload) {
+    public ResponseEntity<Map<String, Object>> createLobby(Principal principal, @RequestBody CreateLobbyPayload createLobbyPayload) {
         logger.info("create lobby Request with request object:{}", createLobbyPayload);
+        logger.info("{}",principal);
+        logger.info(principal.getName());
+        createLobbyPayload.setOwner(principal.getName());
         Map<String, Object> response = lobbyService.createLobby(createLobbyPayload);
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -37,8 +43,9 @@ public class LobbyController {
     }
 
     @PostMapping(path = "/addContestant")
-    public ResponseEntity<Map<String, Object>> addContestant(@RequestBody ContestantPayload contestantPayload) {
+    public ResponseEntity<Map<String, Object>> addContestant(Principal principal,@RequestBody ContestantPayload contestantPayload) {
         logger.info("add contestant Request with request object:{}", contestantPayload);
+        contestantPayload.setCodeBattleId(principal.getName());
         Map<String, Object> response = lobbyService.addContestant(contestantPayload);
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);

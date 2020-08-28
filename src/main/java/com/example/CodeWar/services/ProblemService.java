@@ -14,4 +14,6 @@ public interface ProblemService {
     Map<String, Object> deleteProblem(long id);
 
     Map<String, Object> publishProblem(long id);
+
+    Map<String, Object> sendToReview(long id);
 }
