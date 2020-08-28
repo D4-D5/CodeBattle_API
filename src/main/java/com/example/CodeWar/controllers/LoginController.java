@@ -1,6 +1,7 @@
 package com.example.CodeWar.controllers;
 
 import com.example.CodeWar.app.Constants;
+import com.example.CodeWar.dto.JwtAuthenticationResponse;
 import com.example.CodeWar.dto.LoginPayload;
 import com.example.CodeWar.dto.UserPayload;
 import com.example.CodeWar.services.LoginService;
@@ -12,15 +13,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
 
 import static com.example.CodeWar.app.Constants.*;
 
-
 @RestController
 @RequestMapping(path = "/api")
-@CrossOrigin(origins = "*")
 public class LoginController {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
@@ -30,12 +31,23 @@ public class LoginController {
 
 
     @PostMapping(path = "/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginPayload loginPayload) {
+    public ResponseEntity<Map<String, Object>> login(HttpServletResponse httpServletResponse,@RequestBody LoginPayload loginPayload) {
         logger.info("Login Request with request object:{}", loginPayload);
         Map<String, Object> response = loginService.login(loginPayload);
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
+//        JwtAuthenticationResponse jwtAuthenticationResponse = (JwtAuthenticationResponse) response.get(MESSAGE);
+//        Cookie cookie = new Cookie("token",jwtAuthenticationResponse.getAccessToken());
+//        cookie.setHttpOnly(true);
+//        cookie.setDomain("bc9f49b6ccbc.ngrok.io");
+//        cookie.setPath("/");
+//        cookie.setSecure(true);
+
+//        httpServletResponse.addCookie(cookie);
+//        httpServletResponse.setHeader("access-control-expose-headers", "Set-Cookie");
+//        httpServletResponse.setHeader("Access-Control-Allow-Credentials","true");
+//        httpServletResponse.setHeader("Access-Control-Allow-Origin","https://bc9f49b6ccbc.ngrok.io");
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

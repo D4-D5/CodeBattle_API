@@ -1,6 +1,8 @@
 package com.example.CodeWar.services.implementation;
 
+//import com.example.CodeWar.CodeforcesRatingCalculator2;
 import com.example.CodeWar.app.ContestStatus;
+import com.example.CodeWar.app.ContestantComparator;
 import com.example.CodeWar.app.DifficultyLevel;
 import com.example.CodeWar.app.ProblemStatus;
 import com.example.CodeWar.dto.*;
@@ -10,6 +12,7 @@ import com.example.CodeWar.model.User;
 import com.example.CodeWar.repositories.LobbyRepository;
 import com.example.CodeWar.repositories.ProblemRepository;
 import com.example.CodeWar.repositories.UserRepository;
+import com.example.CodeWar.services.RunnableTask;
 import com.example.CodeWar.services.ContestService;
 //import com.mashape.unirest.http.HttpResponse;
 //import com.mashape.unirest.http.Unirest;
@@ -28,6 +31,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -62,6 +66,15 @@ public class ContestServiceImpl implements ContestService {
     @Autowired
     private ProblemRepository problemRepository;
 
+    @Autowired
+    private TaskScheduler taskScheduler;
+
+    @Autowired
+    private RunnableTask runnableTask;
+
+    @Autowired
+    private RatingChange ratingChange;
+
     @Override
     public Map<String, Object> startContest(StartContestPayload startContestPayload) {
         Map<String,Object> response = new HashMap<>();
@@ -94,19 +107,38 @@ public class ContestServiceImpl implements ContestService {
                 return response;
             }
 
+//            if(lobby.getContestants().size()<2){
+//                response.put(REASON,MINIMUM_CONTESTANT);
+//                response.put(STATUS,STATUS_FAILURE);
+//                return response;
+//            }
+
             List<User> contestantList = new ArrayList<>();
             for (Contestant contestant:lobby.getContestants()) {
                 User user = userRepository.findByCodeBattleId(contestant.getCodeBattleId());
                 contestantList.add(user);
             }
-
             int contestRating = ComputeContestRating(contestantList);
+            logger.info("contest rating = "+contestRating);
+            Set<Contestant> newContestantSet = new HashSet<>();
+            for(Contestant contestant:lobby.getContestants()){
+                Contestant newContestant = new Contestant(contestant);
+                newContestant.setContestStatus(ContestStatus.LIVE);
+                newContestantSet.add(newContestant);
+            }
 
             Update update = new Update();
             update.set("contestStatus", ContestStatus.LIVE);
+            update.set("contestants",newContestantSet);
             update.set("rating",contestRating);
             update.set("questions",getQuestionsForContest(contestRating,contestantList));
             update.set("startTime",System.currentTimeMillis());
+            System.out.println(new Date()+" Runnable Task started now");
+            runnableTask.setRoomId(startContestPayload.getRoomId());
+            taskScheduler.schedule(
+                    runnableTask,
+                    new Date(System.currentTimeMillis() + CONTEST_RUN_TIME)
+            );
             mongoOperations.updateFirst(query,update,Lobby.class);
             logger.info("This is lobby {}",lobbyRepository.findByRoomId(startContestPayload.getRoomId()));
             response.put(MESSAGE,lobbyRepository.findByRoomId(startContestPayload.getRoomId()));
@@ -119,6 +151,70 @@ public class ContestServiceImpl implements ContestService {
         }
         return response;
     }
+
+    @Override
+    public void endContest(String roomId){
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(roomId));
+        Update update = new Update();
+        update.set("contestStatus", ContestStatus.ENDED);
+        mongoOperations.updateFirst(query,update,Lobby.class);
+        logger.info("Contest ended");
+        System.out.println(new Date()+" Runnable Task ended now");
+        simpMessagingTemplate.convertAndSend(ROOM_LISTENER+roomId,END_CONTEST);
+        Lobby lobby = lobbyRepository.findByRoomId(roomId);
+        ratingChange.updateRating(lobby.getContestants(),roomId);
+    }
+
+    @Override
+    public Map<String, Object> endContestForUser(ContestantPayload contestantPayload) {
+        Map<String,Object> response = new HashMap<>();
+
+        if(!verifyContestantPayload(contestantPayload,response)){
+            response.put(STATUS,STATUS_FAILURE);
+            return response;
+        }
+        Lobby lobby = lobbyRepository.findByRoomId(contestantPayload.getRoomId());
+        if(Objects.isNull(lobby)){
+            response.put(REASON,ROOM_ID_NOT_FOUND);
+            response.put(STATUS,STATUS_SUCCESS);
+            return response;
+        }
+        if(!lobby.getContestStatus().equals(ContestStatus.LIVE)){
+            response.put(REASON,CONTEST_NOT_LIVE);
+            response.put(STATUS,STATUS_FAILURE);
+            return response;
+        }
+        boolean checkContestant = false;
+        Set<Contestant> contestantSet = new HashSet<>();
+        for(Contestant contestant:lobby.getContestants()){
+            Contestant contestant1 = new Contestant(contestant);
+            if(contestant.getCodeBattleId().equals(contestantPayload.getCodeBattleId())){
+                checkContestant = true;
+                if(!contestant.getContestStatus().equals(ContestStatus.LIVE)){
+                    response.put(REASON,CONTESTANT_NOT_LIVE);
+                    response.put(STATUS,STATUS_FAILURE);
+                    return response;
+                }
+                contestant1.setContestStatus(ContestStatus.ENDED);
+            }
+            contestantSet.add(contestant1);
+        }
+        if(!checkContestant){
+            response.put(REASON,CONTESTANT_NOT_ALLOWED);
+            response.put(STATUS,STATUS_FAILURE);
+            return response;
+        }
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(contestantPayload.getRoomId()));
+        Update update = new Update();
+        update.set("contestants", contestantSet);
+        mongoOperations.updateFirst(query,update, Lobby.class);
+        response.put(MESSAGE,contestantSet);
+        response.put(STATUS,STATUS_SUCCESS);
+        return response;
+    }
+
 
     private boolean verifyStartContestPayload(StartContestPayload startContestPayload, Map<String, Object> response) {
         if(Objects.isNull(startContestPayload)){
@@ -147,11 +243,11 @@ public class ContestServiceImpl implements ContestService {
 
         logger.info(String.valueOf(questionSetIndex));
         logger.info(questionSetValue);
-
-
+        logger.info("All questions {}",problemRepository.findAll());
         List<Long> problemsIdNotToTake = getProblemToIgnore(contestantList);
+        logger.info("Problem not to take {}",problemsIdNotToTake);
         List<Problem> problemList = getFilteredProblems(questionSetValue,problemsIdNotToTake);
-
+        logger.info("Problem list {}",problemList);
         Set<Long> problemSet = new HashSet<>();
         for (Problem problem:problemList){
             problemSet.add(problem.getId());
@@ -178,6 +274,7 @@ public class ContestServiceImpl implements ContestService {
     }
 
     private List<Problem> findProblemsFromRepo(int numOfQuestions, DifficultyLevel difficultyLevel, List<Long> problemsIdNotToTake) {
+        problemsIdNotToTake.add((long) 0);
         switch (numOfQuestions){
             case 3:
                 return problemRepository.findFirst3ByDifficultyLevelAndProblemStatusAndIdNotIn(difficultyLevel, ProblemStatus.PUBLISHED,problemsIdNotToTake);
@@ -216,13 +313,46 @@ public class ContestServiceImpl implements ContestService {
 
     @Override
     public Map<String, Object> getLeaderboard(String roomId) {
-        return null;
+        Map<String,Object> response = new HashMap<>();
+        logger.info(roomId);
+        if(Objects.isNull(roomId) || roomId.isEmpty() || roomId.isBlank()){
+            response.put(REASON,ROOM_ID_NULL);
+            response.put(STATUS,STATUS_SUCCESS);
+            return response;
+        }
+        Lobby lobby = lobbyRepository.findByRoomId(roomId);
+        if(Objects.isNull(lobby)){
+            response.put(REASON,ROOM_ID_NOT_FOUND);
+            response.put(STATUS,STATUS_FAILURE);
+            return response;
+        }
+        Set<Contestant> contestantSet = lobby.getContestants();
+        List<Contestant> contestantList = new ArrayList<>(contestantSet);
+        sortByNumSolvedAndPenalty(contestantList);
+        assignRanks(contestantList);
+        response.put(MESSAGE,contestantList);
+        response.put(STATUS,STATUS_SUCCESS);
+        return response;
     }
+
+    private void sortByNumSolvedAndPenalty(List<Contestant> contestantList) {
+        Comparator<Contestant> comparator = Collections.reverseOrder(new ContestantComparator());
+        contestantList.sort(comparator);
+    }
+
+    private void assignRanks(List<Contestant> contestantList) {
+        int rank = 1;
+        for (Contestant contestant : contestantList) {
+            contestant.setRank(rank);
+            rank += 1;
+        }
+    }
+
 
     @Override
     public Map<String, Object> getContestQuestions(ContestantPayload contestantPayload) throws IOException {
         Map<String,Object> response = new HashMap<>();
-
+        logger.info("get contest questions payload {}",contestantPayload);
         if(!verifyContestantPayload(contestantPayload,response)){
             response.put(STATUS,STATUS_FAILURE);
             return response;
@@ -242,6 +372,11 @@ public class ContestServiceImpl implements ContestService {
         for(Contestant contestant:lobby.getContestants()){
             if(contestant.getCodeBattleId().equals(contestantPayload.getCodeBattleId())){
                 checkContestant = true;
+                if(!contestant.getContestStatus().equals(ContestStatus.LIVE)){
+                    response.put(REASON,CONTESTANT_NOT_LIVE);
+                    response.put(STATUS,STATUS_FAILURE);
+                    return response;
+                }
                 break;
             }
         }
@@ -250,7 +385,9 @@ public class ContestServiceImpl implements ContestService {
             response.put(STATUS,STATUS_FAILURE);
             return response;
         }
+
         Set<Long> problemIdsList = lobby.getQuestions();
+        logger.info("This is final list of problem ids {}",problemIdsList);
         List<ProblemResponse> problemResponseList = new ArrayList<>();
         try {
             for (Long id : problemIdsList) {
@@ -264,7 +401,7 @@ public class ContestServiceImpl implements ContestService {
                     return response;
                 }
             }
-            logger.info("{}", problemResponseList);
+            logger.info("This is the final problem list {}", problemResponseList);
             response.put(MESSAGE, problemResponseList);
             response.put(STATUS, STATUS_SUCCESS);
         }
@@ -283,14 +420,16 @@ public class ContestServiceImpl implements ContestService {
             response.put(STATUS,STATUS_FAILURE);
             return response;
         }
+        Map<String,Object> submissionBatchBody = new HashMap<>();
+//        List<Judge0CreateSubmission> bodyList = new
         Judge0CreateSubmission body = new Judge0CreateSubmission();
         try {
             body.setLanguage_id(submissionPayload.getLanguageId());
             body.setSource_code(submissionPayload.getSourceCode());
             Optional<Problem> problem = problemRepository.findById(submissionPayload.getProblemId());
             if (problem.isPresent()) {
-                body.setStdin(Files.readString(Path.of(problem.get().getFileInputTestCase())));
-                body.setExpected_output(Files.readString(Path.of(problem.get().getFileOutputTestCase())));
+                body.setStdin(Files.readString(Path.of(problem.get().getFileInputTestCases())));
+                body.setExpected_output(Files.readString(Path.of(problem.get().getFileOutputTestCases())));
             } else {
                 response.put(REASON,PROBLEM_TEST_INPUT_IS_NULL);
                 response.put(STATUS,STATUS_FAILURE);
@@ -304,7 +443,7 @@ public class ContestServiceImpl implements ContestService {
         }
         logger.info("{}",body.toString());
         try {
-            HttpResponse<JsonNode> httpResponse = Unirest.post("https://judge0.p.rapidapi.com/submissions")
+            HttpResponse<JsonNode> httpResponse = Unirest.post("https://judge0.p.rapidapi.com/submissions/batch")
                     .header("x-rapidapi-host", "judge0.p.rapidapi.com")
                     .header("x-rapidapi-key", "9d099c4f7fmsh89afa8cdfb965f3p123e5fjsn10b6969a328e")
                     .header("content-type", "application/json")
@@ -330,6 +469,7 @@ public class ContestServiceImpl implements ContestService {
         return response;
     }
 
+
     private boolean verifySubmissionPayload(SubmissionPayload submissionPayload, Map<String, Object> response) {
         if(Objects.isNull(submissionPayload)){
             response.put(REASON,INVALID_ARGUMENT);
@@ -340,6 +480,9 @@ public class ContestServiceImpl implements ContestService {
         }
         if(Objects.isNull(submissionPayload.getSourceCode()) || submissionPayload.getSourceCode().isEmpty() || submissionPayload.getSourceCode().isBlank()){
             response.put(REASON,SOURCECODE_IS_NULL);
+        }
+        else if(submissionPayload.getSourceCode().length()>MAX_CODE_SIZE){
+            response.put(REASON,CODE_SIZE_EXCEEDED);
         }
         if(Objects.isNull(submissionPayload.getRoomId()) || submissionPayload.getRoomId().isEmpty() || submissionPayload.getRoomId().isBlank()){
             response.put(REASON,ROOM_ID_NULL);
@@ -356,10 +499,19 @@ public class ContestServiceImpl implements ContestService {
                 if(lobby.getContestants().stream().noneMatch(contestant -> contestant.getCodeBattleId().equals(submissionPayload.getCodeBattleId()))){
                     response.put(REASON,CODEBATTLE_ID_NOT_FOUND);
                 }
+                lobby.getContestants().forEach(contestant -> {
+                    if(contestant.getCodeBattleId().equals(submissionPayload.getCodeBattleId())){
+                        if(!contestant.getContestStatus().equals(ContestStatus.LIVE)){
+                            response.put(REASON,CONTESTANT_NOT_LIVE);
+                        }
+                    }
+                });
             }
         }
         return !response.containsKey(REASON);
     }
+
+
 
     private boolean getSubmission(String token, SubmissionPayload submissionPayload, Map<String, Object> response) {
         try {

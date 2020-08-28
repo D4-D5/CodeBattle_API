@@ -69,7 +69,8 @@ public class LobbyServiceImpl implements LobbyService {
         lobby.setContestStatus(ContestStatus.IDLE);
 
         //create instance of contestant i.e add owner
-        Contestant contestant = new Contestant(createLobbyPayload.getOwner());
+        int rating = userRepository.findByCodeBattleId(createLobbyPayload.getOwner()).getRating();
+        Contestant contestant = new Contestant(createLobbyPayload.getOwner(),rating,ContestStatus.IDLE);
         lobby.getContestants().add(contestant);
 
         //save the lobby to lobby repository
@@ -115,17 +116,23 @@ public class LobbyServiceImpl implements LobbyService {
             return response;
         }
 
-        Contestant contestant = new Contestant(contestantPayload.getCodeBattleId());
+        int rating = userRepository.findByCodeBattleId(contestantPayload.getCodeBattleId()).getRating();
+        Contestant contestant = new Contestant(contestantPayload.getCodeBattleId(),rating,ContestStatus.IDLE);
 
         Query query = new Query();
         query.addCriteria(Criteria.where("roomId").is(contestantPayload.getRoomId()));
 
-        Lobby lobby = mongoOperations.findOne(query,Lobby.class);
+        Lobby lobby = lobbyRepository.findByRoomId(contestantPayload.getRoomId());
 
         if(!Objects.isNull(lobby)){
 
             Update update = new Update();
             Set<Contestant> contestantSet = lobby.getContestants();
+            if(contestantSet.contains(contestant)){
+                response.put(REASON,USER_ALREADY_IN_ROOM);
+                response.put(STATUS,STATUS_FAILURE);
+                return response;
+            }
             contestantSet.add(contestant);
             update.set("contestants",contestantSet);
             mongoOperations.updateFirst(query,update,Lobby.class);

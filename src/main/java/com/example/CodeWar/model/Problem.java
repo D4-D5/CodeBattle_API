@@ -3,13 +3,27 @@ package com.example.CodeWar.model;
 import com.example.CodeWar.app.DifficultyLevel;
 import com.example.CodeWar.app.ProblemStatus;
 import com.example.CodeWar.dto.ProblemPayload;
+import com.example.CodeWar.exception.FileException;
+import com.example.CodeWar.services.FileStorageService;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.ToString;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.persistence.*;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
+
+import static com.example.CodeWar.app.Constants.*;
+import static com.example.CodeWar.app.Constants.FILE_ERROR;
 
 @Entity
 public class Problem {
@@ -17,31 +31,39 @@ public class Problem {
     @Id
     @GeneratedValue
     private long id;
-    private String problemStatement;
     private String problemTitle;
+    @Column(length = 655370)
+    private String problemStatement;
+    @Column(length = 655370)
     private String inputSpecification;
+    @Column(length = 655370)
     private String outputSpecification;
+    @Column(length = 655370)
+    private String constraints;
+    @Column(length = 655370)
+    private String sampleInput;
+    @Column(length = 655370)
+    private String sampleOutput;
+    @Column(length = 655370)
+    private String ioExplanation;
+    private String fileInputTestCases;
+    private String fileOutputTestCases;
+    @Column(length = 655370)
+    private String idealSolution;
+    private int idealSolutionLanguageId;
+    private DifficultyLevel difficultyLevel;
+    @ManyToMany
+    private Set<Tag> tags = new HashSet<>();
     private int timeLimit;
     private int memoryLimit;
-    private int acceptedSubmissions = 0;
-    private int totalSubmissions = 0;
-    private DifficultyLevel difficultyLevel;
-    private String fileSampleInput;
-    private String fileSampleOutput;
-    private String fileInputTestCase;
-    private String fileOutputTestCase;
-    private String fileIdealSolution;
     private ProblemStatus problemStatus = ProblemStatus.IN_DRAFT;
     @OneToOne
     private User authorId;
-    private String ioExplanation;
-    private int maxCodeSize;
-    @ManyToMany
-    private Set<Tag> tags = new HashSet<>();
     @ManyToMany(mappedBy = "solvedProblems")
     private Set<User> solvedByUsers;
+    private String fileBasePath;
 
-    public Problem(ProblemPayload problemPayload) {
+    public Problem(ProblemPayload problemPayload) throws FileException {
         this.problemStatement = problemPayload.getProblemStatement();
         this.problemTitle = problemPayload.getProblemTitle();
         this.inputSpecification = problemPayload.getInputSpecification();
@@ -50,7 +72,21 @@ public class Problem {
         this.memoryLimit = problemPayload.getMemoryLimit();
         this.difficultyLevel = problemPayload.getDifficultyLevel();
         this.ioExplanation = problemPayload.getIoExplanation();
-        this.maxCodeSize = problemPayload.getMaxCodeSize();
+        this.constraints = problemPayload.getConstraints();
+        this.sampleInput = problemPayload.getSampleInput();
+        this.sampleOutput = problemPayload.getSampleOutput();
+        UUID uuid = UUID.randomUUID();
+        String location = FILE_BASE_PATH + problemPayload.getProblemTitle() + "_" + uuid + "/";
+        storeFile(problemPayload.getFileInputTestCases(), location);
+        storeFile(problemPayload.getFileOutputTestCases(), location);
+        this.fileInputTestCases = location;
+        this.fileOutputTestCases = location;
+        this.idealSolution = problemPayload.getIdealSolution();
+        this.idealSolutionLanguageId = problemPayload.getIdealSolutionLanguageId();
+    }
+
+    public Problem(String fileBasePath){
+        this.fileBasePath = fileBasePath;
     }
 
     public Problem() {
@@ -113,22 +149,6 @@ public class Problem {
         this.memoryLimit = memoryLimit;
     }
 
-    public int getAcceptedSubmissions() {
-        return acceptedSubmissions;
-    }
-
-    public void setAcceptedSubmissions(int acceptedSubmissions) {
-        this.acceptedSubmissions = acceptedSubmissions;
-    }
-
-    public int getTotalSubmissions() {
-        return totalSubmissions;
-    }
-
-    public void setTotalSubmissions(int totalSubmissions) {
-        this.totalSubmissions = totalSubmissions;
-    }
-
     public DifficultyLevel getDifficultyLevel() {
         return difficultyLevel;
     }
@@ -137,44 +157,44 @@ public class Problem {
         this.difficultyLevel = difficultyLevel;
     }
 
-    public String getFileSampleInput() {
-        return fileSampleInput;
+    public String getFileInputTestCases() {
+        return fileInputTestCases;
     }
 
-    public void setFileSampleInput(String fileSampleInput) {
-        this.fileSampleInput = fileSampleInput;
+    public void setFileInputTestCases(String fileInputTestCases) {
+        this.fileInputTestCases = fileInputTestCases;
     }
 
-    public String getFileSampleOutput() {
-        return fileSampleOutput;
+    public String getFileOutputTestCases() {
+        return fileOutputTestCases;
     }
 
-    public void setFileSampleOutput(String fileSampleOutput) {
-        this.fileSampleOutput = fileSampleOutput;
+    public void setFileOutputTestCases(String fileOutputTestCases) {
+        this.fileOutputTestCases = fileOutputTestCases;
     }
 
-    public String getFileInputTestCase() {
-        return fileInputTestCase;
+    public String getSampleInput() {
+        return sampleInput;
     }
 
-    public void setFileInputTestCase(String fileInputTestCase) {
-        this.fileInputTestCase = fileInputTestCase;
+    public void setSampleInput(String sampleInput) {
+        this.sampleInput = sampleInput;
     }
 
-    public String getFileOutputTestCase() {
-        return fileOutputTestCase;
+    public String getSampleOutput() {
+        return sampleOutput;
     }
 
-    public void setFileOutputTestCase(String fileOutputTestCase) {
-        this.fileOutputTestCase = fileOutputTestCase;
+    public void setSampleOutput(String sampleOutput) {
+        this.sampleOutput = sampleOutput;
     }
 
-    public String getFileIdealSolution() {
-        return fileIdealSolution;
+    public String getIdealSolution() {
+        return idealSolution;
     }
 
-    public void setFileIdealSolution(String fileIdealSolution) {
-        this.fileIdealSolution = fileIdealSolution;
+    public void setIdealSolution(String idealSolution) {
+        this.idealSolution = idealSolution;
     }
 
     public ProblemStatus getProblemStatus() {
@@ -201,20 +221,68 @@ public class Problem {
         this.ioExplanation = ioExplanation;
     }
 
-    public int getMaxCodeSize() {
-        return maxCodeSize;
-    }
-
-    public void setMaxCodeSize(int maxCodeSize) {
-        this.maxCodeSize = maxCodeSize;
-    }
-
     public Set<Tag> getTags() {
         return tags;
     }
 
     public void setTags(Set<Tag> tags) {
         this.tags = tags;
+    }
+
+    public int getIdealSolutionLanguageId() {
+        return idealSolutionLanguageId;
+    }
+
+    public void setIdealSolutionLanguageId(int idealSolutionLanguageId) {
+        this.idealSolutionLanguageId = idealSolutionLanguageId;
+    }
+
+    public String getFileBasePath() {
+        return fileBasePath;
+    }
+
+    public void setFileBasePath(String fileBasePath) {
+        this.fileBasePath = fileBasePath;
+    }
+
+    public String getConstraints() {
+        return constraints;
+    }
+
+    public void setConstraints(String constraints) {
+        this.constraints = constraints;
+    }
+
+    public void storeFile(List<MultipartFile> files, String location) throws FileException {
+        if(Objects.isNull(files) || files.isEmpty()){
+            return;
+        }
+        System.out.println(location);
+        //make dir if not already exits
+        File folder = new File(location);
+        if (!folder.exists()) {
+            if(!folder.mkdirs()){
+                throw new FileException(FILE_MKDIR);
+            }
+        }
+        for(MultipartFile file : files){
+            // Normalize file name
+            String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
+
+            try {
+                // Check if the file's name contains invalid characters
+                if (fileName.contains("..")) {
+                    throw new FileException(FILE_INVALID_PATH);
+                }
+
+                System.out.println("File content tye "+file.getContentType());
+                // Copy file to the target location (Replacing existing file with the same name)
+                Path path = Paths.get(location + fileName);
+                Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ex) {
+                throw new FileException(FILE_ERROR);
+            }
+        }
     }
 
 }

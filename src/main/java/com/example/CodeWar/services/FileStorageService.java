@@ -1,9 +1,8 @@
 package com.example.CodeWar.services;
 
+import com.example.CodeWar.exception.FileException;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
-
 public interface FileStorageService {
-    Map<String, Object> storeFile(MultipartFile file,String location);
+    String storeFile(MultipartFile file, String location) throws FileException;
 }

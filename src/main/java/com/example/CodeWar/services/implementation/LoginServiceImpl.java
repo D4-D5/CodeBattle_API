@@ -77,17 +77,10 @@ public class LoginServiceImpl implements LoginService {
         }
 
         try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            loginPayload.getCodeBattleId(),
-                            loginPayload.getPassword()
-                    )
-            );
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            String jwt = tokenProvider.generateToken(authentication);
+            String jwt = getAuthenticationToken(loginPayload.getCodeBattleId(),loginPayload.getPassword());
             response.put(STATUS,STATUS_SUCCESS);
+//            JwtAuthenticationResponse jwtAuthenticationResponse = new JwtAuthenticationResponse(jwt);
+//            String token = jwtAuthenticationResponse.getAccessToken();
             response.put(MESSAGE,new JwtAuthenticationResponse(jwt));
             return response;
         }
@@ -96,6 +89,18 @@ public class LoginServiceImpl implements LoginService {
             response.put(REASON,BAD_CREDENTIALS);
             return response;
         }
+    }
+
+    private String getAuthenticationToken(String codeBattleId, String password) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        codeBattleId,
+                        password
+                )
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return tokenProvider.generateToken(authentication);
     }
 
 
@@ -139,10 +144,9 @@ public class LoginServiceImpl implements LoginService {
         }
 
         logger.info("{}",user);
-
-        //response for success
-//        response.put(MESSAGE, user);
-        response.put(STATUS, STATUS_SUCCESS);
+        String jwt = getAuthenticationToken(userPayload.getCodeBattleId(),userPayload.getPassword());
+        response.put(STATUS,STATUS_SUCCESS);
+        response.put(MESSAGE,new JwtAuthenticationResponse(jwt));
         return response;
     }
 

@@ -17,4 +17,8 @@ public interface ContestService {
     Map<String, Object> getContestQuestions(ContestantPayload contestantPayload) throws IOException;
 
     Map<String, Object> submitProblem(SubmissionPayload submissionPayload) throws UnirestException;
+
+    void endContest(String roomId);
+
+    Map<String, Object> endContestForUser(ContestantPayload contestantPayload);
 }

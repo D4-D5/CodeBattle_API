@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.Map;
 
 import static com.example.CodeWar.app.Constants.STATUS_FAILURE;
@@ -29,8 +30,9 @@ public class ProblemController {
     private static final Logger logger = LoggerFactory.getLogger(ProblemController.class);
 
     @PostMapping("/createProblem")
-    public ResponseEntity<Map<String, Object>> addProblem(@ModelAttribute ProblemPayload problemPayload) {
+    public ResponseEntity<Map<String, Object>> addProblem(Principal principal, @ModelAttribute ProblemPayload problemPayload) {
         logger.info("Problem Payload is -> {}", problemPayload);
+        problemPayload.setAuthorId(principal.getName());
         Map<String, Object> response = problemService.addProblem(problemPayload);
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -39,8 +41,9 @@ public class ProblemController {
     }
 
     @PostMapping("/getProblems")
-    public ResponseEntity<Map<String, Object>> getProblems(@RequestParam String authorId) {
+    public ResponseEntity<Map<String, Object>> getProblems(Principal principal,@RequestParam String authorId) {
         logger.info(authorId);
+        authorId = principal.getName();
         Map<String, Object> response = problemService.getProblems(authorId);
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -49,8 +52,9 @@ public class ProblemController {
     }
 
     @PostMapping("/updateProblem")
-    public ResponseEntity<Map<String, Object>> updateProblem(@ModelAttribute ProblemPayload problemPayload) {
+    public ResponseEntity<Map<String, Object>> updateProblem(Principal principal,@ModelAttribute ProblemPayload problemPayload) {
         logger.info("Problem Payload is -> {}", problemPayload);
+        problemPayload.setAuthorId(principal.getName());
         Map<String, Object> response = problemService.updateProblem(problemPayload);
         if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -67,6 +71,17 @@ public class ProblemController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    @PostMapping("/sendToReview")
+    public ResponseEntity<Map<String, Object>> sendToReview(@RequestParam long id) {
+        logger.info("Problem Payload is -> {}", id);
+        Map<String, Object> response = problemService.sendToReview(id);
+        if (STATUS_FAILURE.equals(response.get(Constants.STATUS).toString())) {
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
 
     @PostMapping("/publishProblem")
     public ResponseEntity<Map<String, Object>> publishProblem(@RequestParam long id) {
